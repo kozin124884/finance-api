@@ -55,8 +55,8 @@
   </style>
 </head>
 <body>
-  <button id="gasBtn" onclick="sendToGoogle()" style="display:none; width:100%; background:#4285f4; color:white; padding:15px; border:none; font-weight:900; position:sticky; top:0; z-index:1000; box-shadow:0 4px 10px rgba(0,0,0,0.2);">
-  📊 ЕСТЬ ДАННЫЕ ДЛЯ ТАБЛИЦЫ (0)
+<button id="googleBackupBtn" onclick="runGoogleBackup()" style="display:none; width:100%; background:#34a853; color:white; padding:15px; border:none; font-weight:bold; margin-bottom:10px;">
+  📦 Бэкап в Google Таблицы (<span id="backupCount">0</span>)
 </button>
   
 
@@ -453,6 +453,16 @@
     };
     
     localQueue.push(tr); appData.transactions.push(tr);
+        // Добавляем запись в очередь для Supabase (как и было)
+    localQueue.push(tr); 
+    
+    // А теперь добавляем ЭТУ ЖЕ запись в отдельную очередь для Google
+    let googleLog = JSON.parse(localStorage.getItem('google_backup_queue') || '[]');
+    googleLog.push(tr);
+    localStorage.setItem('google_backup_queue', JSON.stringify(googleLog));
+    
+    // Обновляем счетчик на кнопке бэкапа
+    updateBackupButton();
     document.getElementById('fSum').value = ''; document.getElementById('tSum').value = ''; document.getElementById('fCom').value = '';
     document.getElementById('syncBar').style.display = 'flex'; document.getElementById('syncText').innerText = `В очереди: ${localQueue.length} шт.`;
     
@@ -1032,6 +1042,47 @@
           btn.style.display = 'none';
       }
   }
+  // Функция, которая показывает/скрывает кнопку и обновляет цифру
+function updateBackupButton() {
+    let log = JSON.parse(localStorage.getItem('google_backup_queue') || '[]');
+    let btn = document.getElementById('googleBackupBtn');
+    if (log.length > 0) {
+        btn.style.display = 'block';
+        document.getElementById('backupCount').innerText = log.length;
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+async function runGoogleBackup() {
+    let log = JSON.parse(localStorage.getItem('google_backup_queue') || '[]');
+    if (log.length === 0) return;
+
+    const GAS_URL = 'ССЫЛКА_НА_ТВОЙ_WEB_APP_GOOGLE'; // Вставь сюда URL своего скрипта
+
+    if (!confirm(`Выгрузить ${log.length} записей в Google Таблицы?`)) return;
+
+    try {
+        // Отправляем массив данных в Google через fetch
+        await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Чтобы Google не ругался на безопасность
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(log)
+        });
+
+        // Если ошибок нет — чистим память «памятки»
+        localStorage.setItem('google_backup_queue', '[]');
+        updateBackupButton();
+        alert('✅ Все данные успешно продублированы в Google Таблицу!');
+    } catch (e) {
+        alert('❌ Ошибка при бэкапе. Проверь интернет.');
+        console.error(e);
+    }
+}
+
+// Вызываем проверку при каждом запуске приложения
+updateBackupButton();
   
   async function sendToGoogle() {
       const log = JSON.parse(localStorage.getItem('gas_backup_log') || '[]');
@@ -1064,6 +1115,7 @@
   
   // Вызови это один раз при загрузке страницы, чтобы кнопка появилась, если данные уже были
   renderGasBtn();
+
 </script>
 </body>
 </html>
