@@ -55,10 +55,6 @@
   </style>
 </head>
 <body>
-<button id="googleBackupBtn" onclick="runGoogleBackup()" style="display:none; width:100%; background:#34a853; color:white; padding:15px; border:none; font-weight:bold; margin-bottom:10px;">
-  📦 Бэкап в Google Таблицы (<span id="backupCount">0</span>)
-</button>
-  
 
 <div style="max-width: 800px; margin: 0 auto;">
   
@@ -436,13 +432,6 @@
     } else {
       sum = document.getElementById('fSum').value; cat = document.getElementById('fCat').value; acc = document.getElementById('fAcc').value; c = document.getElementById('fCom').value;
       if(!sum || !cat || !acc) return alert('⚠️ Поля "Сумма", "Категория" и "Счет" ОБЯЗАТЕЛЬНЫ!');
-    // Сохраняем копию для Google во внутреннюю память телефона
-    let gasLog = JSON.parse(localStorage.getItem('gas_backup_log') || '[]');
-    gasLog.push(tr); 
-    localStorage.setItem('gas_backup_log', JSON.stringify(gasLog));
-    
-    // Показываем кнопку бэкапа, если там что-то появилось
-    renderGasBtn();
     }
     
     const tr = {
@@ -453,16 +442,6 @@
     };
     
     localQueue.push(tr); appData.transactions.push(tr);
-        // Добавляем запись в очередь для Supabase (как и было)
-    localQueue.push(tr); 
-    
-    // А теперь добавляем ЭТУ ЖЕ запись в отдельную очередь для Google
-    let googleLog = JSON.parse(localStorage.getItem('google_backup_queue') || '[]');
-    googleLog.push(tr);
-    localStorage.setItem('google_backup_queue', JSON.stringify(googleLog));
-    
-    // Обновляем счетчик на кнопке бэкапа
-    updateBackupButton();
     document.getElementById('fSum').value = ''; document.getElementById('tSum').value = ''; document.getElementById('fCom').value = '';
     document.getElementById('syncBar').style.display = 'flex'; document.getElementById('syncText').innerText = `В очереди: ${localQueue.length} шт.`;
     
@@ -1030,92 +1009,6 @@
     document.getElementById('bulkText').value = '';
     fetchAllData();
   }
-    const GAS_URL = 'ССЫЛКА_НА_ТВОЙ_СКРИПТ'; // Сюда вставь URL из Google Apps Script
-  
-  function renderGasBtn() {
-      const log = JSON.parse(localStorage.getItem('gas_backup_log') || '[]');
-      const btn = document.getElementById('gasBtn');
-      if (log.length > 0) {
-          btn.style.display = 'block';
-          btn.innerText = `📊 ВЫГРУЗИТЬ В ТАБЛИЦЫ (${log.length} шт.)`;
-      } else {
-          btn.style.display = 'none';
-      }
-  }
-  // Функция, которая показывает/скрывает кнопку и обновляет цифру
-function updateBackupButton() {
-    let log = JSON.parse(localStorage.getItem('google_backup_queue') || '[]');
-    let btn = document.getElementById('googleBackupBtn');
-    if (log.length > 0) {
-        btn.style.display = 'block';
-        document.getElementById('backupCount').innerText = log.length;
-    } else {
-        btn.style.display = 'none';
-    }
-}
-
-async function runGoogleBackup() {
-    let log = JSON.parse(localStorage.getItem('google_backup_queue') || '[]');
-    if (log.length === 0) return;
-
-    const GAS_URL = 'ССЫЛКА_НА_ТВОЙ_WEB_APP_GOOGLE'; // Вставь сюда URL своего скрипта
-
-    if (!confirm(`Выгрузить ${log.length} записей в Google Таблицы?`)) return;
-
-    try {
-        // Отправляем массив данных в Google через fetch
-        await fetch(GAS_URL, {
-            method: 'POST',
-            mode: 'no-cors', // Чтобы Google не ругался на безопасность
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(log)
-        });
-
-        // Если ошибок нет — чистим память «памятки»
-        localStorage.setItem('google_backup_queue', '[]');
-        updateBackupButton();
-        alert('✅ Все данные успешно продублированы в Google Таблицу!');
-    } catch (e) {
-        alert('❌ Ошибка при бэкапе. Проверь интернет.');
-        console.error(e);
-    }
-}
-
-// Вызываем проверку при каждом запуске приложения
-updateBackupButton();
-  
-  async function sendToGoogle() {
-      const log = JSON.parse(localStorage.getItem('gas_backup_log') || '[]');
-      if (log.length === 0) return;
-  
-      const btn = document.getElementById('gasBtn');
-      const originalText = btn.innerText;
-      btn.innerText = '🚀 ОТПРАВЛЯЮ...';
-      btn.disabled = true;
-  
-      try {
-          // Отправляем всё скопом
-          await fetch(GAS_URL, {
-              method: 'POST',
-              mode: 'no-cors', // Важно для работы с Google Скриптами
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify(log)
-          });
-  
-          // Если дошли сюда, значит отправили (в no-cors мы не видим ответ, но сетевая ошибка выкинет в catch)
-          localStorage.setItem('gas_backup_log', '[]'); // Очищаем память
-          alert('✅ Данные успешно улетели в Google Таблицу!');
-          renderGasBtn();
-      } catch (err) {
-          alert('❌ Ошибка отправки. Проверь интернет или ссылку на скрипт.');
-          btn.innerText = originalText;
-          btn.disabled = false;
-      }
-  }
-  
-  // Вызови это один раз при загрузке страницы, чтобы кнопка появилась, если данные уже были
-  renderGasBtn();
-
 </script>
 </body>
 </html>
