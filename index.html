@@ -997,7 +997,7 @@
     const l = document.getElementById('bulkText').value.split('\n'); let h = ''; bulkParsed = []; l.forEach((x, i) => { x = x.trim(); if(!x || x === '.') return; const w = x.split(' '); let n = w[0]; if(w.length > 1 && (w[0] === 'Саня' || w[0] === 'Ебучая')) n = w[0] + ' ' + w[1]; let amt = 0; const m = x.match(/-?\d+/g); if(m) { const v = m.filter(y => Math.abs(y) < 2000 || y % 100 === 0 || y === '2200' || y === '3000' || y === '13500' || y === '16300' || y === '25000'); amt = v.length ? v[v.length - 1] : m[m.length - 1]; } let c = x.replace(n, '').replace(amt, '').trim(); bulkParsed.push({ name: n, amount: amt, comment: c }); h += `<div style="display:flex; gap:4px; margin-bottom:4px;"><input class="input-ui" style="padding:4px; margin:0; width:35%;" value="${n}" id="bN_${i}"><input class="input-ui" style="padding:4px; margin:0; width:25%; font-weight:bold;" value="${amt}" id="bA_${i}"><input class="input-ui" style="padding:4px; margin:0; flex:1;" value="${c}" id="bC_${i}"></div>`; }); 
     if(bulkParsed.length) h += `<button onclick="saveBulk()" style="width:100%; background:#10b981; color:white; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:8px;">💾 Записать в Архив</button>`;
     document.getElementById('bulkResults').innerHTML = h; }
-  function async function saveBulk() {
+  async function saveBulk() {
     const d = [];
     bulkParsed.forEach((_, i) => {
       d.push({name: document.getElementById(`bN_${i}`).value, amount: document.getElementById(`bA_${i}`).value, comment: document.getElementById(`bC_${i}`).value});
