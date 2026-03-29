@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Банк PRO</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+    :root {
+      --bg-body: #f1f5f9; --bg-card: #ffffff; --text-main: #0f172a; --text-mute: #64748b;
+      --border: #e2e8f0; --input-bg: #f8fafc; --hover: rgba(0,0,0,0.03);
+      --nav-bg: rgba(255,255,255,0.95); --btn-active: #0f172a; --btn-active-text: #ffffff;
+      --cal-icon: url('data:image/svg+xml;utf8,<svg fill="%2364748b" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>');
+    }
+    [data-theme="dark"] {
+      --bg-body: #020617; --bg-card: #0f172a; --text-main: #f8fafc; --text-mute: #94a3b8;
+      --border: #1e293b; --input-bg: #1e293b; --hover: rgba(255,255,255,0.05);
+      --nav-bg: rgba(15,23,42,0.95); --btn-active: #3b82f6; --btn-active-text: #ffffff;
+      --cal-icon: url('data:image/svg+xml;utf8,<svg fill="%2394a3b8" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>');
+    }
+    body { background: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; padding: 20px; padding-bottom: 90px; transition: background 0.3s; }
+    * { box-sizing: border-box; }
+    .glass-card { background: var(--bg-card); border-radius: 20px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 20px; border: 1px solid var(--border); transition: 0.3s; }
+    .input-ui { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 12px; font-weight: 700; background: var(--input-bg); color: var(--text-main); outline: none; margin-bottom: 12px; transition: 0.2s; }
+    .input-ui:focus { border-color: #3b82f6; }
+    .input-date { position: relative; background-image: var(--cal-icon); background-repeat: no-repeat; background-position: right 12px center; background-size: 20px; cursor: pointer; color: var(--text-main); }
+    .input-date::-webkit-calendar-picker-indicator { position: absolute; top:0; left:0; right:0; bottom:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+    
+    .click-header { cursor: pointer; user-select: none; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; padding:10px; border-radius:12px; }
+    .click-header:hover { background: var(--hover); }
+    .click-header:active { transform: scale(0.98); }
+    
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+    .modal-content { background: var(--bg-card); padding: 24px; border-radius: 20px; width: 100%; max-width: 450px; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border); position: relative; }
+    .modal-header-sticky { position: sticky; top: -25px; background: var(--bg-card); z-index: 100; margin: -24px -24px 16px -24px; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); border-radius: 20px 20px 0 0; }
+    .close-btn { background: var(--border); border: none; width: 32px; height: 32px; border-radius: 16px; font-size: 16px; cursor: pointer; font-weight: bold; display: flex; justify-content: center; align-items: center; color: var(--text-main); transition: 0.2s; }
+    
+    .tx-row:hover, .search-row:hover { background: var(--hover); cursor: pointer; }
+    .search-row { padding: 12px; border-bottom: 1px solid var(--border); transition: 0.2s; }
+    .tab-btn { flex: 1; padding: 10px; text-align: center; font-weight: 800; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-mute); font-size: 12px; transition: 0.2s; white-space: nowrap; } 
+    .tab-btn.active { border-bottom-color: #3b82f6; color: #3b82f6; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--nav-bg); backdrop-filter: blur(10px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0 20px 0; z-index: 500; transition: 0.3s; }
+    .nav-item { flex: 1; text-align: center; color: var(--text-mute); cursor: pointer; transition: 0.2s; font-size: 11px; font-weight: 800; display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .nav-item.active { color: #3b82f6; } .nav-icon { font-size: 24px; }
+    .app-view { display: none; animation: fadeIn 0.3s; } .app-view.active { display: block; }
+    @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+    .btn-toggle { padding: 8px 16px; border-radius: 10px; font-weight: 800; cursor: pointer; color: var(--text-mute); background: var(--border); flex:1; text-align:center; transition: 0.2s; }
+    .btn-toggle.active { background: var(--btn-active); color: var(--btn-active-text); }
+    .bank-card { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 20px; border-radius: 16px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s;}
+    .bank-card:hover { transform: scale(1.02); }
+    .sync-bar { position: fixed; bottom: 70px; left: 10px; right: 10px; background: #10b981; color: white; padding: 12px; border-radius: 16px; display: none; justify-content: space-between; align-items: center; z-index: 490; font-weight: bold; box-shadow: 0 10px 25px rgba(16,185,129,0.4); cursor: pointer; }
+    .spinner { border: 4px solid var(--border); border-top: 4px solid var(--text-main); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 40px auto; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div style="max-width: 800px; margin: 0 auto;">
+  
+  <div id="gfBanner" style="display:none; justify-content:space-between; align-items:center; background:#fef08a; color:#991b1b; padding:12px; border-radius:12px; margin-bottom:16px; font-size:12px; border: 1px solid #fde047;">
+    <div>
+       <div style="font-weight:bold;">⚠️ Обновите Google Формы!</div>
+       <div style="color:#713f12; font-size:11px;">Ждет изменений: <span id="gfPendingCount">0</span> шт.</div>
+    </div>
+    <button onclick="showGfReminderModal()" style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">👀 Показать</button>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <h1 style="font-size:24px; font-weight:900;">Банк PRO</h1>
+    <div style="display:flex; gap:8px;">
+      <button onclick="toggleTheme()" style="background:var(--border); color:var(--text-main); border:none; padding:8px 12px; border-radius:12px; cursor:pointer; font-size:16px;">🌓</button>
+      <button onclick="fetchAllData()" style="background:var(--border); border:none; padding:8px 16px; border-radius:12px; font-weight:bold; color:var(--text-main); cursor:pointer;">🔄 Обновить</button>
+    </div>
+  </div>
+  <div id="loader" style="display:none;"><div class="spinner"></div></div>
+
+  <!-- ЭКРАН 1: СЧЕТА -->
+  <div id="viewAccounts" class="app-view active"><div id="bankCardsList"></div></div>
+
+  <!-- ЭКРАН 2: АНАЛИТИКА -->
+  <div id="viewAnalytics" class="app-view">
+    <div style="display: flex; gap: 4px; margin-bottom: 16px;">
+      <div id="btnExp" class="btn-toggle active" onclick="setMode('expense')">Расходы</div>
+      <div id="btnInc" class="btn-toggle" onclick="setMode('income')">Доходы</div>
+      <div id="btnTr" class="btn-toggle" onclick="setMode('transfer')">Переводы</div>
+    </div>
+    <div class="glass-card">
+      <select id="periodType" class="input-ui" style="cursor:pointer;" onchange="updatePeriodUI()">
+        <option value="month">Месяц</option><option value="salary">ЗП Месяц (с 16 по 15 число)</option><option value="year">Год</option><option value="custom">Произвольно</option><option value="all">За всё время</option>
+      </select>
+      <div id="pMonthWrap" style="display:none;"><input type="month" id="pMonth" class="input-ui input-date" onchange="applyDatesLocally()"></div>
+      <div id="pYearWrap" style="display:none;"><input type="number" id="pYear" class="input-ui" placeholder="Год (напр. 2026)" onchange="applyDatesLocally()"></div>
+      <div id="pCustomWrap" style="display:none; gap:10px;"><input type="date" id="pStart" class="input-ui input-date" onchange="applyDatesLocally()"><input type="date" id="pEnd" class="input-ui input-date" onchange="applyDatesLocally()"></div>
+      <label id="hideTransitLabel" style="margin-top:5px; font-size:12px; display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="hideTransit" checked style="cursor:pointer; width:16px; height:16px;" onchange="applyDatesLocally()"> Скрыть Долги и Бабушку</label>
+    </div>
+    <div class="glass-card">
+      <div style="font-size:13px; font-weight:800; color:var(--text-mute);">ИТОГО ЗА ПЕРИОД</div>
+      <div id="totalSum" style="font-size:36px; font-weight:900;">0 ₽</div>
+      <!-- МАГИЯ Z-INDEX -->
+      <div id="chartArea" style="position:relative; margin: 20px 0; height: 250px;">
+        <div id="chartCenterBtn" onclick="chartLevel='main';renderA()" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; z-index:0; width:130px; height:130px; border-radius:50%; background:var(--bg-card); border:1px solid var(--border); box-shadow:0 4px 10px rgba(0,0,0,0.05); flex-direction:column; justify-content:center; align-items:center; padding:10px; overflow:hidden;">
+          <div style="font-size:11px; color:var(--text-mute); font-weight:bold; margin-bottom:2px;">🔙 Назад</div>
+          <div id="chartCenterTitle" style="font-size:12px; font-weight:900; color:var(--text-main); line-height:1.2; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis;"></div>
+        </div>
+        <canvas id="mainChart" style="position:relative; z-index:10; cursor:pointer;"></canvas>
+      </div>
+      <div id="categoriesList"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН 3: ДОЛГИ -->
+  <div id="viewDebts" class="app-view">
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+      <button onclick="document.getElementById('debtCenterModal').style.display='flex'; switchTabDebt('new');" style="background: #f59e0b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 900; cursor:pointer;">⚙️ Управление долгами</button>
+    </div>
+    <div class="glass-card" style="border: 2px solid #fde68a;">
+      <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #b45309; font-size: 11px; margin-bottom: 16px; background: #fef3c7; padding: 8px; border-radius: 8px; cursor:pointer;"><input type="checkbox" id="debtPeriodToggle" onchange="renderDebts()" style="width: 16px; height: 16px; cursor:pointer;"> Только за выбранный период</label>
+      <div id="debtsByName">Ожидание...</div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН 4: ДОБАВИТЬ -->
+  <div id="viewAdd" class="app-view">
+    <div class="glass-card">
+      <div style="display:flex; gap:4px; margin-bottom: 16px; background:var(--border); padding:4px; border-radius:12px;">
+        <div id="btnFormExp" class="btn-toggle active" onclick="switchFormType('Расход')">Расход</div>
+        <div id="btnFormInc" class="btn-toggle" onclick="switchFormType('Доход')">Доход</div>
+        <div id="btnFormTr" class="btn-toggle" onclick="switchFormType('Перевод')">Перевод</div>
+      </div>
+      <input type="date" id="fDate" class="input-ui input-date">
+      <div id="formStandard">
+        <input type="number" id="fSum" class="input-ui" placeholder="Сумма (₽) *обязательно">
+        <div style="display:flex; gap:8px;">
+          <select id="fCat" class="input-ui" style="flex:1; cursor:pointer;"></select>
+          <button onclick="openCatManager()" style="background:var(--border); color:var(--text-main); border-radius:12px; font-weight:900; padding:0 15px; margin-bottom:12px; border:none; cursor:pointer;">⚙️</button>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <select id="fAcc" class="input-ui" style="flex:1; cursor:pointer;"></select>
+          <button onclick="manageAccounts('add_acc')" style="background:#0f172a; color:white; border-radius:12px; font-weight:900; padding:0 15px; margin-bottom:12px; border:none; cursor:pointer;">➕</button>
+        </div>
+        <input type="text" id="fCom" class="input-ui" placeholder="Комментарий (необязательно)">
+      </div>
+      <div id="formTransfer" style="display:none;">
+        <input type="number" id="tSum" class="input-ui" placeholder="Сумма (₽) *обязательно">
+        <label style="font-size:11px; font-weight:bold; color:var(--text-mute);">ОТКУДА</label><select id="tFrom" class="input-ui" style="cursor:pointer;"></select>
+        <label style="font-size:11px; font-weight:bold; color:var(--text-mute);">КУДА</label><select id="tTo" class="input-ui" style="cursor:pointer;"></select>
+      </div>
+      <button onclick="queueTransaction()" style="width:100%; background:#10b981; color:white; padding:16px; border-radius:12px; font-weight:900; border:none; margin-top:10px; cursor:pointer;">Добавить в очередь ⚡</button>
+      
+      <!-- СПИСОК ОЧЕРЕДИ ТРАНЗАКЦИЙ -->
+      <div id="queueListContainer" style="margin-top:20px; display:none;">
+        <h4 style="font-size:12px; color:var(--text-mute); margin-bottom:8px;">ОПЕРАЦИИ В ОЧЕРЕДИ:</h4>
+        <div id="queueListRender"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="syncBar" class="sync-bar" onclick="uploadQueue()"><span id="syncText">В очереди: 0 шт.</span><span>🚀 Загрузить</span></div>
+
+<!-- ИДЕАЛЬНЫЕ НАСТРОЙКИ КАТЕГОРИЙ: 3 Вкладки -->
+<div id="catManagerModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header-sticky">
+        <h3 style="font-weight:900; margin:0;">Настройки категорий</h3>
+        <button class="close-btn" onclick="document.getElementById('catManagerModal').style.display='none'">✕</button>
+    </div>
+    
+    <div style="display:flex; border-bottom:2px solid var(--border); margin-bottom:16px;">
+      <div id="btnCatManAdd" class="tab-btn active" onclick="switchCatManTab('add')">➕ Создать</div>
+      <div id="btnCatManEditSub" class="tab-btn" onclick="switchCatManTab('editsub')">✏️ Подкатегории</div>
+      <div id="btnCatManEditGroup" class="tab-btn" onclick="switchCatManTab('editgroup')">📂 Группы</div>
+    </div>
+    
+    <!-- 1. СОЗДАТЬ -->
+    <div id="catManAdd">
+      <div style="background:var(--input-bg); padding:16px; border-radius:12px; margin-bottom:12px; border:1px solid var(--border);">
+        <label style="font-size:11px; font-weight:bold; color:var(--text-mute); display:block; margin-bottom:4px;">1. ДОБАВИТЬ В СУЩЕСТВУЮЩУЮ ГРУППУ</label>
+        <input type="text" id="manAddName" class="input-ui" placeholder="Имя подкатегории...">
+        <select id="manAddGroupSel" class="input-ui"></select>
+        <button onclick="manAddSubNew()" style="width:100%; padding:10px; border-radius:8px; background:#3b82f6; color:white; font-weight:bold; border:none; cursor:pointer;">Создать подкатегорию</button>
+      </div>
+      <div style="background:var(--input-bg); padding:16px; border-radius:12px; border:1px solid var(--border);">
+        <label style="font-size:11px; font-weight:bold; color:var(--text-mute); display:block; margin-bottom:4px;">2. ИЛИ СОЗДАТЬ АБСОЛЮТНО НОВУЮ ГРУППУ</label>
+        <input type="text" id="manNewGroupName" class="input-ui" placeholder="Название Группы...">
+        <input type="text" id="manNewGroupCat" class="input-ui" placeholder="Первая подкатегория в ней...">
+        <button onclick="manAddGroupNew()" style="width:100%; padding:10px; border-radius:8px; background:#8b5cf6; color:white; font-weight:bold; border:none; cursor:pointer;">Создать новую группу</button>
+      </div>
+    </div>
+    
+    <!-- 2. ИЗМЕНИТЬ ПОДКАТЕГОРИИ -->
+    <div id="catManEditSub" style="display:none;">
+      <label style="font-size:11px; font-weight:bold; color:var(--text-mute); display:block; margin-bottom:4px;">ВЫБЕРИТЕ ПОДКАТЕГОРИЮ</label>
+      <select id="manSub" class="input-ui" onchange="updateManagerUISub()" style="cursor:pointer;"></select>
+      <div style="background:var(--input-bg); padding:16px; border-radius:12px; border:1px solid var(--border);">
+        <label style="font-size:11px; font-weight:bold; color:var(--text-mute); display:block; margin-bottom:4px;">ПЕРЕИМЕНОВАТЬ</label>
+        <div style="display:flex; gap:8px;"><input type="text" id="manSubRename" class="input-ui" style="margin:0;"><button onclick="manRenameSub()" style="background:#10b981; color:white; border-radius:8px; font-weight:bold; padding:0 15px; border:none; cursor:pointer;">ОК</button></div>
+        <label style="font-size:11px; font-weight:bold; color:var(--text-mute); display:block; margin-top:12px; margin-bottom:4px;">ПЕРЕНЕСТИ В ДРУГУЮ ГРУППУ</label>
+        <div style="display:flex; gap:8px;"><select id="manSubMove" class="input-ui" style="margin:0;"></select><button onclick="manMoveSub()" style="background:#f59e0b; color:white; border-radius:8px; font-weight:bold; padding:0 15px; border:none; cursor:pointer;">ОК</button></div>
+        <button onclick="manDeleteSub()" style="width:100%; padding:10px; background:#ef4444; color:white; border-radius:8px; font-weight:bold; margin-top:16px; border:none; cursor:pointer;">🗑 Удалить подкатегорию</button>
+      </div>
+    </div>
+
+    <!-- 3. ИЗМЕНИТЬ ГРУППЫ -->
+    <div id="catManEditGroup" style="display:none;">
+      <label style="font-size:11px; font-weight:bold; color:var(--text-mute); display:block; margin-bottom:4px;">ВЫБЕРИТЕ ГРУППУ</label>
+      <select id="manGroupSelEdit" class="input-ui" onchange="updateManagerUIGroup()" style="cursor:pointer;"></select>
+      <div style="background:#fee2e2; padding:16px; border-radius:12px; border:1px solid #fca5a5;">
+        <label style="font-size:11px; font-weight:bold; color:#991b1b; display:block; margin-bottom:4px;">ПЕРЕИМЕНОВАТЬ ГРУППУ</label>
+        <div style="display:flex; gap:8px;"><input type="text" id="manGroupRename" class="input-ui" style="margin:0;"><button onclick="manRenameGroup()" style="background:#ec4899; color:white; border-radius:8px; font-weight:bold; padding:0 15px; border:none; cursor:pointer;">ОК</button></div>
+        <button onclick="manDeleteGroup()" style="width:100%; padding:10px; background:#7f1d1d; color:white; border-radius:8px; font-weight:bold; margin-top:16px; border:none; cursor:pointer;">🗑 УДАЛИТЬ ВСЮ ГРУППУ</button>
+      </div>
+    </div>
+    
+    <!-- ОЧЕРЕДЬ КАТЕГОРИЙ -->
+    <div id="catQueueContainer" style="display:none; margin-top:16px; border-top:2px solid var(--border); padding-top:16px;">
+        <h4 style="font-size:12px; color:var(--text-mute); margin-bottom:8px;">ОЧЕРЕДЬ ИЗМЕНЕНИЙ (Не сохранено):</h4>
+        <div id="catQueueList"></div>
+        <button id="btnUploadCatQueue" onclick="uploadCatQueue()" style="width:100%; background:#10b981; color:white; padding:14px; border-radius:12px; font-weight:900; border:none; cursor:pointer; margin-top:10px; transition:0.3s;">🚀 Отправить на сервер</button>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА-НАПОМИНАНИЕ ГУГЛ ФОРМ (ПОЛНЫЙ СПИСОК) -->
+<div id="googleFormReminderModal" class="modal">
+  <div class="modal-content" style="border: 2px solid #3b82f6;">
+    <div class="modal-header-sticky" style="margin-bottom:10px;">
+        <h3 style="color:#3b82f6; margin:0;">⚠️ Обновите Формы!</h3>
+        <button class="close-btn" onclick="document.getElementById('googleFormReminderModal').style.display='none'">✕</button>
+    </div>
+    <p style="font-size:14px; margin-bottom:10px; color:var(--text-main);">Изменения успешно записаны на сервер.<br><b>Но они не появились в Google Форме!</b> Зайдите в настройки формы и обновите списки.</p>
+    
+    <div style="font-size:11px; font-weight:bold; color:var(--text-mute); margin-bottom:4px;">ИСТОРИЯ ВАШИХ ИЗМЕНЕНИЙ:</div>
+    <ul id="gfModalList" style="font-size:13px; color:var(--text-main); margin-top:0; margin-bottom:20px; padding-left:20px; max-height:180px; overflow-y:auto; font-weight:bold; border-left: 2px solid #3b82f6;"></ul>
+    
+    <label style="display:flex; align-items:center; gap:10px; font-weight:bold; cursor:pointer; background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border); margin-bottom:10px;">
+      <input type="checkbox" id="gfCheckbox" style="width:20px; height:20px; cursor:pointer;" onchange="document.getElementById('gfBtn').disabled = !this.checked; document.getElementById('gfBtn').style.background = this.checked ? '#10b981' : 'var(--text-mute)';"> 
+      Я уже обновил форму
+    </label>
+    <div style="display:flex; gap:8px;">
+      <button onclick="document.getElementById('googleFormReminderModal').style.display='none'" style="flex:1; padding:12px; background:var(--border); color:var(--text-main); font-weight:bold; border-radius:12px; border:none; cursor:pointer;">Напомнить позже</button>
+      <button id="gfBtn" disabled onclick="clearGfBanner(); document.getElementById('googleFormReminderModal').style.display='none'" style="flex:1; padding:12px; background:var(--text-mute); color:white; font-weight:bold; border-radius:12px; border:none; transition:0.3s; cursor:pointer;">Готово, очистить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ИСТОРИЯ СЧЕТОВ: ФИЛЬТРЫ И ЛИПКАЯ ШАПКА -->
+<div id="accHistoryModal" class="modal">
+  <div class="modal-content" style="padding: 0;">
+    <div class="modal-header-sticky" style="flex-direction:column; align-items:stretch; gap:12px; border-bottom:1px solid var(--border); margin:0; padding:24px 24px 16px 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 id="histTitle" style="font-size:20px; font-weight:900; margin:0;"></h2>
+            <button class="close-btn" onclick="document.getElementById('accHistoryModal').style.display='none'">✕</button>
+        </div>
+        <div style="background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border);">
+            <select id="histDateType" class="input-ui" style="margin-bottom:8px; padding:8px;" onchange="updateHistDateUI()">
+                <option value="month">Текущий месяц</option><option value="all">За всё время</option><option value="single">Конкретная дата</option><option value="range">Промежуток дат</option>
+            </select>
+            <div id="histSingleWrap" style="display:none; margin-bottom:0;"><input type="date" id="histSingle" class="input-ui input-date" style="padding:8px; margin:0;" onchange="executeHistSearch()"></div>
+            <div id="histRangeWrap" style="display:none; gap:8px; margin-bottom:0;"><input type="date" id="histStart" class="input-ui input-date" style="padding:8px; margin:0;" onchange="executeHistSearch()"><input type="date" id="histEnd" class="input-ui input-date" style="padding:8px; margin:0;" onchange="executeHistSearch()"></div>
+            
+            <!-- СТРОКА ПОИСКА -->
+            <input type="text" id="histSearchInput" class="input-ui" style="padding:8px; margin-top:8px; margin-bottom:0;" placeholder="🔍 Поиск (категория, сумма, коммент)..." onkeyup="executeHistSearch()">
+        </div>
+    </div>
+    <div id="histList" style="padding: 16px 24px;"></div>
+  </div>
+</div>
+
+<!-- ДОЛГИ -->
+<div id="debtCenterModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header-sticky">
+        <h3 style="font-weight:900; margin:0;">Управление долгами</h3>
+        <button class="close-btn" onclick="document.getElementById('debtCenterModal').style.display='none'">✕</button>
+    </div>
+    <div style="display:flex; border-bottom: 2px solid var(--border); margin-bottom: 16px;">
+      <div id="tabNew" class="tab-btn active" onclick="switchTabDebt('new')">Запись</div>
+      <div id="tabSearch" class="tab-btn" onclick="switchTabDebt('search')">Поиск 🔍</div>
+      <div id="tabOld" class="tab-btn" onclick="switchTabDebt('old')">📚 Архив</div>
+    </div>
+    <div id="contentNew">
+      <select id="newAction" class="input-ui" style="cursor:pointer;"><option value="Кому-то в долг (Расход)">Я дал в долг</option><option value="Что-то кому-то купил в долг (Расход)">Я купил в долг</option><option value="Вернули долг (Доход)">Мне вернули долг</option><option value="Дали в долг (Доход)">Мне дали в долг</option></select>
+      <input type="date" id="newDate" class="input-ui input-date">
+      <input type="text" id="newName" class="input-ui" placeholder="Имя...">
+      <div style="display:flex; gap:8px;"><input type="number" id="newSum" class="input-ui" placeholder="₽"><input type="text" id="newAcc" class="input-ui" placeholder="Счет"></div>
+      <button onclick="saveNewDebt()" id="btnSaveNew" style="width:100%; padding:12px; border-radius:8px; background:#10b981; color:white; font-weight:bold; border:none; cursor:pointer;">Сохранить</button>
+    </div>
+    <div id="contentSearch" style="display:none; flex-direction:column;">
+      <div style="background:var(--input-bg); padding:12px; border-radius:12px; margin-bottom:12px; border:1px solid var(--border);">
+        <select id="searchDateType" class="input-ui" style="margin-bottom:8px; padding:8px;" onchange="updateSearchDateUI()"><option value="all">За всё время</option><option value="single">Конкретная дата</option><option value="range">Промежуток дат</option></select>
+        <div id="searchSingleWrap" style="display:none; margin-bottom:8px;"><input type="date" id="searchSingle" class="input-ui input-date" style="padding:8px; margin:0;" onchange="executeDebtSearch()"></div>
+        <div id="searchRangeWrap" style="display:none; gap:8px; margin-bottom:8px;"><input type="date" id="searchStart" class="input-ui input-date" style="padding:8px; margin:0;" onchange="executeDebtSearch()"><input type="date" id="searchEnd" class="input-ui input-date" style="padding:8px; margin:0;" onchange="executeDebtSearch()"></div>
+        <input type="text" id="searchInput" class="input-ui" style="padding:8px; margin:0;" placeholder="Имя, сумма, текст..." onkeyup="executeDebtSearch()">
+      </div>
+      <span style="font-size:11px; color:var(--text-mute); font-weight:bold;" id="searchCount">Найдено: 0 шт</span>
+      <div id="tableRowsList" style="max-height:300px; overflow-y:auto; border:1px solid var(--border); border-radius:12px; padding:8px; margin-top:8px;"></div>
+    </div>
+    <div id="contentOld" style="display:none;"><textarea id="bulkText" class="input-ui" rows="5" placeholder="Ника 1500"></textarea><button onclick="parseBulkData()" style="width:100%; background:#3b82f6; color:white; padding:10px; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">Распознать</button><div id="bulkResults" style="max-height:200px; overflow-y:auto; margin-bottom:12px;"></div></div>
+  </div>
+</div>
+
+<!-- ОКНО ИЗМЕНЕНИЯ С DATALIST -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header-sticky">
+        <h3 style="font-weight:900; margin:0;">Изменить</h3>
+        <button class="close-btn" onclick="document.getElementById('editModal').style.display='none'">✕</button>
+    </div>
+    <input type="hidden" id="editRow">
+    <input type="hidden" id="editType">
+    <label style="font-size:11px; font-weight:bold; color:var(--text-mute);">ДАТА</label>
+    <input type="date" id="editDate" class="input-ui input-date">
+    <label style="font-size:11px; font-weight:bold; color:var(--text-mute);">КАТЕГОРИЯ</label>
+    <input type="text" id="editCat" class="input-ui" list="editCatDataList" placeholder="Начните вводить...">
+    <datalist id="editCatDataList"></datalist>
+    <label style="font-size:11px; font-weight:bold; color:var(--text-mute);">СУММА</label>
+    <input type="number" id="editSum" class="input-ui">
+    <label style="font-size:11px; font-weight:bold; color:var(--text-mute);">КОММЕНТАРИЙ</label>
+    <input type="text" id="editComment" class="input-ui">
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button onclick="document.getElementById('editModal').style.display='none'" style="flex:1; padding:10px; border-radius:8px; background:var(--border); color:var(--text-main); font-weight:bold; border:none; cursor:pointer;">Отмена</button>
+      <button onclick="saveEdit()" id="saveEditBtn" style="flex:1; padding:10px; border-radius:8px; background:#3b82f6; color:white; font-weight:bold; border:none; cursor:pointer;">Применить</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="nav-item active" id="nav-accounts" onclick="switchTab('accounts')"><div class="nav-icon">💳</div>Счета</div>
+  <div class="nav-item" id="nav-analytics" onclick="switchTab('analytics')"><div class="nav-icon">📊</div>Аналитика</div>
+  <div class="nav-item" id="nav-debts" onclick="switchTab('debts')"><div class="nav-icon">🤝</div>Долги</div>
+  <div class="nav-item" id="nav-add" onclick="switchTab('add')"><div class="nav-icon">➕</div>Добавить</div>
+</nav>
+
+<script>
+  const API = 'https://finance-api-l66t.onrender.com';
+  let appData = { config: {accounts:[], inc:{}, exp:{}}, accounts: [], transactions: [], archiveDebts: [] };
+  let localQueue = [], catQueue = [], mode = 'expense', myChart = null, currentFormType = 'Расход', gStart = '', gEnd = '', bulkParsed=[];
+  let chartLevel = 'main', activeChartGroup = null, activeHistoryAcc = null;
+  const colors = ['#4f46e5', '#10b981', '#f43f5e', '#f59e0b', '#06b6d4', '#8b5cf6', '#ec4899', '#2dd4bf', '#fb923c', '#d946ef'];
+
+  function toISOLocal(d) {
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+  }
+
+  function initTheme() {
+    const t = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  }
+  function toggleTheme() {
+    const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('theme', t);
+    if(myChart) { myChart.options.elements.arc.borderColor = t === 'dark' ? '#1e293b' : '#ffffff'; myChart.update(); }
+  }
+  initTheme();
+
+  function getBankCol(b) {
+    b = b.toLowerCase();
+    if(b.includes('сбер')) return '#22c55e'; if(b.includes('тиньк') || b.includes('t-')) return '#eab308';
+    if(b.includes('альф')) return '#ef4444'; if(b.includes('втб')) return '#3b82f6';
+    if(b.includes('янд')) return '#f43f5e'; if(b.includes('озон')) return '#d946ef';
+    return '#64748b';
+  }
+
+  function checkGfBanner() {
+    let flag = localStorage.getItem('formsNeedUpdate') === 'true';
+    let arr = JSON.parse(localStorage.getItem('gfPendingChanges') || '[]');
+    document.getElementById('gfBanner').style.display = flag ? 'flex' : 'none';
+    if(flag) document.getElementById('gfPendingCount').innerText = arr.length;
+  }
+  function showGfReminderModal() {
+    let arr = JSON.parse(localStorage.getItem('gfPendingChanges') || '[]');
+    document.getElementById('gfModalList').innerHTML = arr.map(x => `<li>${x}</li>`).join('');
+    document.getElementById('gfCheckbox').checked = false;
+    document.getElementById('gfBtn').disabled = true;
+    document.getElementById('gfBtn').style.background = 'var(--text-mute)';
+    document.getElementById('googleFormReminderModal').style.display = 'flex';
+  }
+  function clearGfBanner() {
+    localStorage.setItem('formsNeedUpdate', 'false');
+    localStorage.setItem('gfPendingChanges', '[]');
+    checkGfBanner();
+  }
+
+  window.onload = () => { 
+    checkGfBanner();
+    const now = new Date();
+    document.getElementById('fDate').value = toISOLocal(now);
+    document.getElementById('newDate').value = toISOLocal(now);
+    document.getElementById('pMonth').value = toISOLocal(now).slice(0,7);
+    document.getElementById('pYear').value = toISOLocal(now).slice(0,4);
+    updatePeriodUI(); fetchAllData();
+  };
+
+  async function fetchAllData() {
+    if(localQueue.length > 0 || catQueue.length > 0) return alert("Сначала выгрузите ваши очереди изменений!");
+    document.getElementById('loader').style.display = 'block';
+    const res = await fetch(API + '/api/initial-data');
+    appData = await res.json();
+    document.getElementById('loader').style.display = 'none';
+    rebuildFormDicts(); applyDatesLocally(); renderBankCards();
+  }
+
+  function switchTab(t) {
+    document.querySelectorAll('.app-view').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+    document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active');
+    document.getElementById('nav-' + t).classList.add('active');
+    if(t === 'accounts') renderBankCards(); if(t === 'analytics') applyDatesLocally();
+  }
+
+  function switchFormType(t) {
+    currentFormType = t;
+    document.getElementById('btnFormExp').classList.toggle('active', t === 'Расход');
+    document.getElementById('btnFormInc').classList.toggle('active', t === 'Доход');
+    document.getElementById('btnFormTr').classList.toggle('active', t === 'Перевод');
+    document.getElementById('formStandard').style.display = t === 'Перевод' ? 'none' : 'block';
+    document.getElementById('formTransfer').style.display = t === 'Перевод' ? 'block' : 'none';
+    rebuildFormDicts();
+  }
+
+  function queueTransaction() {
+    const d = document.getElementById('fDate').value;
+    let sum = 0, cat = '', acc = '', c = '', fF = '', fT = '';
+    
+    if(currentFormType === 'Перевод') {
+      sum = document.getElementById('tSum').value; fF = document.getElementById('tFrom').value; fT = document.getElementById('tTo').value;
+      if(!sum || !fF || !fT) return alert('⚠️ Поля "Сумма", "Откуда" и "Куда" ОБЯЗАТЕЛЬНЫ!');
+    } else {
+      sum = document.getElementById('fSum').value; cat = document.getElementById('fCat').value; acc = document.getElementById('fAcc').value; c = document.getElementById('fCom').value;
+      if(!sum || !cat || !acc) return alert('⚠️ Поля "Сумма", "Категория" и "Счет" ОБЯЗАТЕЛЬНЫ!');
+    }
+    
+    const tr = {
+      r: 'local_' + Date.now(), fd: d, d: d.slice(8,10) + '.' + d.slice(5,7), type: currentFormType,
+      catE: currentFormType === 'Расход' ? cat : '', sumE: currentFormType === 'Расход' ? parseFloat(sum) : 0, accE: currentFormType === 'Расход' ? acc : '', comE: currentFormType === 'Расход' ? c : '',
+      catI: currentFormType === 'Доход' ? cat : '', sumI: currentFormType === 'Доход' ? parseFloat(sum) : 0, accI: currentFormType === 'Доход' ? acc : '', comI: currentFormType === 'Доход' ? c : '',
+      accF: fF, accT: fT, sumTr: currentFormType === 'Перевод' ? parseFloat(sum) : 0
+    };
+    
+    localQueue.push(tr); appData.transactions.push(tr);
+    document.getElementById('fSum').value = ''; document.getElementById('tSum').value = ''; document.getElementById('fCom').value = '';
+    document.getElementById('syncBar').style.display = 'flex'; document.getElementById('syncText').innerText = `В очереди: ${localQueue.length} шт.`;
+    
+    if(currentFormType === 'Расход') { let b = appData.accounts.find(x => x.name === acc); if(b) b.balance -= parseFloat(sum); }
+    if(currentFormType === 'Доход') { let b = appData.accounts.find(x => x.name === acc); if(b) b.balance += parseFloat(sum); }
+    if(currentFormType === 'Перевод') {
+      let b1 = appData.accounts.find(x => x.name === fF); if(b1) b1.balance -= parseFloat(sum);
+      let b2 = appData.accounts.find(x => x.name === fT); if(b2) b2.balance += parseFloat(sum);
+    }
+    renderQueue();
+  }
+
+  function renderQueue() {
+    const c = document.getElementById('queueListContainer');
+    if(localQueue.length === 0) { c.style.display = 'none'; return; }
+    c.style.display = 'block'; let h = '';
+    localQueue.forEach(q => {
+      h += `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; margin-bottom:8px;">
+        <div style="font-size:12px;"><b>${q.type}</b>: <span style="color:#3b82f6; font-weight:bold;">${q.sumE || q.sumI || q.sumTr} ₽</span><br><span style="color:var(--text-mute)">${q.catE || q.catI || (q.accF + ' ➔ ' + q.accT)}</span></div>
+        <button onclick="removeFromQueue('${q.r}')" style="background:#ef4444; color:white; border:none; border-radius:8px; padding:6px 12px; font-weight:bold; cursor:pointer;">✕</button>
+      </div>`;
+    });
+    document.getElementById('queueListRender').innerHTML = h;
+  }
+
+  function removeFromQueue(id) {
+    const idx = localQueue.findIndex(x => x.r === id);
+    if(idx > -1) {
+      const q = localQueue[idx];
+      if(q.type === 'Расход') { let b = appData.accounts.find(x => x.name === q.accE); if(b) b.balance += q.sumE; }
+      if(q.type === 'Доход') { let b = appData.accounts.find(x => x.name === q.accI); if(b) b.balance -= q.sumI; }
+      if(q.type === 'Перевод') { let b1 = appData.accounts.find(x => x.name === q.accF); if(b1) b1.balance += q.sumTr; let b2 = appData.accounts.find(x => x.name === q.accT); if(b2) b2.balance -= q.sumTr; }
+      localQueue.splice(idx, 1); appData.transactions = appData.transactions.filter(x => x.r !== id);
+      document.getElementById('syncText').innerText = `В очереди: ${localQueue.length} шт.`;
+      if(localQueue.length === 0) document.getElementById('syncBar').style.display = 'none';
+      renderQueue();
+    }
+  }
+
+  async function uploadQueue() {
+    document.getElementById('syncText').innerText = 'Отправка...';
+    await fetch(API + '/api/transactions/batch', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(localQueue)
+    });
+    localQueue = [];
+    document.getElementById('syncBar').style.display = 'none';
+    renderQueue(); alert('Выгружено!'); fetchAllData();
+  }
+
+  function rebuildFormDicts() {
+    let aH = ''; appData.config.accounts.forEach(a => aH += `<option value="${a}">${a}</option>`);
+    document.getElementById('fAcc').innerHTML = aH; document.getElementById('tFrom').innerHTML = aH; document.getElementById('tTo').innerHTML = aH;
+    let cH = ''; const dict = currentFormType === 'Расход' ? appData.config.exp : appData.config.inc;
+    for(const [g, i] of Object.entries(dict)) { cH += `<optgroup label="${g}">`; i.forEach(x => cH += `<option value="${x}">${x}</option>`); cH += `</optgroup>`; }
+    document.getElementById('fCat').innerHTML = cH;
+  }
+
+  function getActionDesc(q) {
+    let map = {'add_sub':'➕ Добавлено', 'rename_sub':'✏️ Подкатегория', 'move_sub':'🚚 Перенесено', 'rename_group':'✏️ Группа', 'delete_sub':'🗑 Удалено', 'delete_group':'🗑 Удалена Группа'};
+    let d = q.newVal || q.oldVal;
+    if(q.action === 'move_sub') d = `${q.oldVal} ➔ ${q.group}`;
+    if(q.action.includes('rename')) d = `${q.oldVal} ➔ ${q.newVal}`;
+    return `${map[q.action]}: ${d} (${q.type})`;
+  }
+
+  function applyCatLocal(action, type, oldVal, newVal, group) {
+    let dict = type === 'Расход' ? appData.config.exp : (type === 'Доход' ? appData.config.inc : null);
+    if(type === 'Счет') { if(action === 'add_sub') appData.config.accounts.push(newVal); return; }
+    if(action === 'add_sub') { if(!dict[group]) dict[group] = []; dict[group].push(newVal); }
+    else if(action === 'rename_sub') { for(let g in dict) { let idx = dict[g].indexOf(oldVal); if(idx > -1) dict[g][idx] = newVal; } }
+    else if(action === 'move_sub') { for(let g in dict) { let idx = dict[g].indexOf(oldVal); if(idx > -1) { dict[g].splice(idx, 1); break; } } if(!dict[group]) dict[group] = []; dict[group].push(oldVal); }
+    else if(action === 'rename_group') { if(dict[oldVal]) { dict[newVal] = dict[oldVal]; delete dict[oldVal]; } }
+    else if(action === 'delete_sub') { for(let g in dict) { let idx = dict[g].indexOf(oldVal); if(idx > -1) { dict[g].splice(idx, 1); break; } } }
+    else if(action === 'delete_group') { delete dict[oldVal]; }
+  }
+
+  function renderCatQueue() {
+    let c = document.getElementById('catQueueContainer');
+    if(catQueue.length === 0) { c.style.display = 'none'; return; }
+    c.style.display = 'block'; let h = '';
+    catQueue.forEach((q, idx) => {
+        h += `<div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:8px; border-radius:8px; margin-bottom:4px; font-size:11px; border:1px solid var(--border);">
+          <div><b>${getActionDesc(q)}</b></div>
+          <button onclick="removeCatQueue(${idx})" style="color:#ef4444; font-weight:bold; border:none; background:none; cursor:pointer;">✕</button>
+        </div>`;
+    });
+    document.getElementById('catQueueList').innerHTML = h;
+  }
+
+  function pushToCatQueue(action, oldVal, newVal, group) {
+    let obj = { action: action, type: currentFormType, oldVal: oldVal, newVal: newVal, group: group };
+    catQueue.push(obj); applyCatLocal(action, currentFormType, oldVal, newVal, group);
+    renderCatQueue(); openCatManager(); rebuildFormDicts();
+  }
+
+  function removeCatQueue(idx) {
+    catQueue.splice(idx, 1); document.getElementById('loader').style.display = 'block';
+    fetch(API + '/api/initial-data').then(r => r.json()).then(res => {
+        appData = res; catQueue.forEach(q => applyCatLocal(q.action, q.type, q.oldVal, q.newVal, q.group));
+        document.getElementById('loader').style.display = 'none';
+        renderCatQueue(); openCatManager(); rebuildFormDicts();
+    });
+  }
+
+  function uploadCatQueue() {
+    if(catQueue.length === 0) return;
+    let btn = document.getElementById('btnUploadCatQueue');
+    btn.innerText = '⏳ Отправка...';
+    btn.disabled = true;
+    
+    let pending = JSON.parse(localStorage.getItem('gfPendingChanges') || '[]');
+    catQueue.forEach(q => pending.push(getActionDesc(q)));
+    
+    fetch.withSuccessHandler(() => {
+        localStorage.setItem('gfPendingChanges', JSON.stringify(pending));
+        localStorage.setItem('formsNeedUpdate', 'true');
+        catQueue = [];
+        renderCatQueue(); 
+        
+        btn.innerText = '🚀 Отправить на сервер';
+        btn.disabled = false;
+        document.getElementById('catManagerModal').style.display = 'none';
+        
+        showGfReminderModal();
+        checkGfBanner();
+        fetchAllData();
+    }).batchManageCategories(catQueue);
+  }
+
+  function manageAccounts(a) { 
+    if(a === 'add_acc') { 
+      let n = prompt("Новый счет:"); 
+      if(n) { 
+        currentFormType = 'Счет'; pushToCatQueue('add_sub', '', n, ''); currentFormType = 'Расход'; 
+        alert('Счет добавлен в очередь! Нажмите "Отправить на сервер" в меню ⚙️.');
+      } 
+    } 
+  }
+  
+  function switchCatManTab(t) {
+    document.getElementById('btnCatManAdd').classList.toggle('active', t==='add');
+    document.getElementById('btnCatManEditSub').classList.toggle('active', t==='editsub');
+    document.getElementById('btnCatManEditGroup').classList.toggle('active', t==='editgroup');
+    document.getElementById('catManAdd').style.display = t==='add' ? 'block' : 'none';
+    document.getElementById('catManEditSub').style.display = t==='editsub' ? 'block' : 'none';
+    document.getElementById('catManEditGroup').style.display = t==='editgroup' ? 'block' : 'none';
+  }
+
+  function openCatManager() {
+    const d = currentFormType === 'Расход' ? appData.config.exp : appData.config.inc; let sh = '', gh = '';
+    for(const [g, it] of Object.entries(d)) { 
+      sh += `<optgroup label="${g}">`; it.forEach(i => sh += `<option value="${i}" data-group="${g}">${i}</option>`); sh += `</optgroup>`; 
+      gh += `<option value="${g}">${g}</option>`; 
+    }
+    document.getElementById('manSub').innerHTML = sh; 
+    document.getElementById('manSubMove').innerHTML = gh; 
+    document.getElementById('manAddGroupSel').innerHTML = gh;
+    document.getElementById('manGroupSelEdit').innerHTML = gh;
+    updateManagerUISub(); updateManagerUIGroup(); document.getElementById('catManagerModal').style.display = 'flex';
+  }
+
+  function updateManagerUISub() {
+    const s = document.getElementById('manSub'); if(!s || !s.options[s.selectedIndex]) { document.getElementById('manSubRename').value = ''; return; }
+    const g = s.options[s.selectedIndex].getAttribute('data-group') || '';
+    document.getElementById('manSubRename').value = s.value; document.getElementById('manSubMove').value = g;
+  }
+
+  function updateManagerUIGroup() {
+    const s = document.getElementById('manGroupSelEdit'); if(!s || !s.value) { document.getElementById('manGroupRename').value = ''; return; }
+    document.getElementById('manGroupRename').value = s.value;
+  }
+  
+  function manAddSubNew() { const n = document.getElementById('manAddName').value, g = document.getElementById('manAddGroupSel').value; if(!n || !g) return alert('Заполните всё!'); document.getElementById('manAddName').value=''; pushToCatQueue('add_sub', '', n, g); }
+  function manAddGroupNew() { const g = document.getElementById('manNewGroupName').value, n = document.getElementById('manNewGroupCat').value; if(!n || !g) return alert('Заполните всё!'); document.getElementById('manNewGroupName').value=''; document.getElementById('manNewGroupCat').value=''; pushToCatQueue('add_sub', '', n, g); }
+  function manRenameSub() { const o = document.getElementById('manSub').value, n = document.getElementById('manSubRename').value; if(n && n !== o) pushToCatQueue('rename_sub', o, n, ""); }
+  function manMoveSub() { const o = document.getElementById('manSub').value, g = document.getElementById('manSubMove').value; pushToCatQueue('move_sub', o, "", g); }
+  function manDeleteSub() { const o = document.getElementById('manSub').value; if(!o) return; pushToCatQueue('delete_sub', o, "", ""); }
+
+  function manRenameGroup() { const o = document.getElementById('manGroupSelEdit').value, n = document.getElementById('manGroupRename').value; if(n && n !== o) pushToCatQueue('rename_group', o, n, ""); }
+  function manDeleteGroup() { const o = document.getElementById('manGroupSelEdit').value; if(!o) return; if(confirm(`🚨 УДАЛИТЬ ГРУППУ "${o}" и ВСЕ её подкатегории?`)) pushToCatQueue('delete_group', o, "", ""); }
+
+  // ==== ФИЛЬТРЫ ИСТОРИИ СЧЕТА И КАРТОЧКА "ВСЕ ОПЕРАЦИИ" С ПОИСКОМ ====
+  function renderBankCards() {
+    let total = 0, h = ''; 
+    appData.accounts.forEach(b => { 
+        total += b.balance;
+        h += `<div class="bank-card" onclick="openAccHistory('${b.name}')"><div style="font-size:13px; color:#cbd5e1; margin-bottom:4px;">${b.name}</div><div style="font-size:24px; font-weight:900;">${b.balance.toLocaleString()} ₽</div></div>`; 
+    });
+    
+    let allCard = `<div class="bank-card" style="background: linear-gradient(135deg, #4f46e5, #312e81); border: 2px solid #6366f1;" onclick="openAccHistory('Все операции')">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="font-size:13px; color:#cbd5e1; font-weight:bold;">Все счета (Сводка)</div>
+            <div style="font-size:16px;">🌍</div>
+        </div>
+        <div style="font-size:24px; font-weight:900; color:white;">${total.toLocaleString()} ₽</div>
+        <div style="font-size:11px; color:#818cf8; margin-top:4px;">Посмотреть полную историю транзакций</div>
+    </div>`;
+    
+    document.getElementById('bankCardsList').innerHTML = allCard + h || 'Пусто';
+  }
+
+  function updateHistDateUI() {
+    const t = document.getElementById('histDateType').value;
+    document.getElementById('histSingleWrap').style.display = t === 'single' ? 'block' : 'none';
+    document.getElementById('histRangeWrap').style.display = t === 'range' ? 'flex' : 'none';
+    executeHistSearch();
+  }
+
+  function openAccHistory(n) {
+    activeHistoryAcc = n; 
+    document.getElementById('histTitle').innerText = n;
+    document.getElementById('histSearchInput').value = ''; // Очищаем поиск при открытии
+    document.getElementById('accHistoryModal').style.display = 'flex';
+    document.getElementById('histDateType').value = 'month';
+    updateHistDateUI();
+  }
+
+  function executeHistSearch() {
+    if(!activeHistoryAcc) return;
+    const n = activeHistoryAcc;
+    const matchAll = (n === 'Все операции');
+    
+    const dType = document.getElementById('histDateType').value;
+    const dSing = document.getElementById('histSingle').value;
+    const dStart = document.getElementById('histStart').value;
+    const dEnd = document.getElementById('histEnd').value;
+    const q = document.getElementById('histSearchInput').value.toLowerCase().trim();
+    
+    let bounds = {s: '', e: ''};
+    if(dType === 'month') {
+        let now = new Date();
+        let s = new Date(now.getFullYear(), now.getMonth(), 1);
+        let e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        bounds.s = toISOLocal(s); bounds.e = toISOLocal(e);
+    }
+
+    let h = '', res = [];
+    appData.transactions.forEach(r => {
+        if(dType === 'single' && dSing && r.fd !== dSing) return;
+        if(dType === 'range' && dStart && dEnd && (r.fd < dStart || r.fd > dEnd)) return;
+        if(dType === 'month' && (r.fd < bounds.s || r.fd > bounds.e)) return;
+
+        // Фильтрация по тексту
+        let str = (r.d + ' ' + r.sumE + ' ' + r.catE + ' ' + r.comE + ' ' + r.sumI + ' ' + r.catI + ' ' + r.comI + ' ' + r.accF + ' ' + r.accT + ' ' + r.accE + ' ' + r.accI).toLowerCase();
+        if(q && !str.includes(q)) return;
+
+        if(r.type === 'Расход' && (matchAll || r.accE === n)) res.push({ id: r.r, fd: r.fd, d: r.d, t: 'Расход', c: r.catE, s: r.sumE, m: r.comE, acc: r.accE });
+        else if(r.type === 'Доход' && (matchAll || r.accI === n)) res.push({ id: r.r, fd: r.fd, d: r.d, t: 'Доход', c: r.catI, s: r.sumI, m: r.comI, acc: r.accI });
+        else if(r.type === 'Между своими') { 
+            if(matchAll) {
+                res.push({ id: r.r, fd: r.fd, d: r.d, t: 'Перевод', c: r.accF + ' ➔ ' + r.accT, s: r.sumTr, acc: '' });
+            } else {
+                if(r.accF === n) res.push({ id: r.r, fd: r.fd, d: r.d, t: 'Перевод исх.', c: 'В ' + r.accT, s: r.sumTr, acc: '' }); 
+                if(r.accT === n) res.push({ id: r.r, fd: r.fd, d: r.d, t: 'Перевод вх.', c: 'Из ' + r.accF, s: r.sumTr, acc: '' }); 
+            }
+        }
+    });
+
+    res.reverse().forEach(r => {
+      let col = 'var(--text-mute)', sn = '', btnHtml = '';
+      if(r.t.includes('исх') || r.t === 'Расход') { col = '#f43f5e'; sn = '-'; } 
+      if(r.t.includes('вх') || r.t === 'Доход') { col = '#10b981'; sn = '+'; }
+      if(r.t.includes('Перевод')) { col = '#eab308'; }
+      
+      if(!r.t.includes('Перевод')) {
+          btnHtml = `<button onclick="clI(event,'${r.id}','${r.c}',${r.s},'${r.m}','${r.t}','${r.fd}')" style="background:var(--border); border:none; border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px; font-weight:bold; color:var(--text-main);">✏️ Изменить</button>`;
+      }
+      
+      let accHtml = '';
+      if (r.acc) accHtml = `<span style="background:${getBankCol(r.acc)}; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:bold; margin-left:6px; color:#ffffff;">${r.acc}</span>`;
+
+      h += `<div style="background:var(--bg-card); padding:12px; border-radius:12px; margin-bottom:8px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:11px; font-weight:bold; color:var(--text-mute); display:flex; align-items:center;">${r.d} | ${r.t} ${accHtml}</span>
+              <span style="font-weight:900; color:${col};">${sn}${r.s.toLocaleString()} ₽</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+              <div style="flex:1;">
+                 <div style="font-size:14px; font-weight:800; color:var(--text-main);">${r.c}</div>
+                 ${r.m ? `<div style="font-size:11px; color:var(--text-mute); margin-top:2px;">${r.m}</div>` : ''}
+              </div>
+              ${btnHtml}
+            </div>
+        </div>`;
+    });
+    
+    if (res.length === 0) {
+        document.getElementById('histList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-mute);">Ничего не найдено</div>';
+    } else {
+        document.getElementById('histList').innerHTML = `<div style="font-size:11px; color:var(--text-mute); font-weight:bold; margin-bottom:8px; text-align:right;">Найдено операций: ${res.length} шт.</div>` + h;
+    }
+  }
+
+  function updatePeriodUI() {
+    const pt = document.getElementById('periodType').value;
+    document.getElementById('pMonthWrap').style.display = (pt === 'month' || pt === 'salary') ? 'block' : 'none';
+    document.getElementById('pYearWrap').style.display = pt === 'year' ? 'block' : 'none';
+    document.getElementById('pCustomWrap').style.display = pt === 'custom' ? 'flex' : 'none';
+    applyDatesLocally();
+  }
+  
+  function applyDatesLocally() {
+    chartLevel = 'main'; const pt = document.getElementById('periodType').value; let s, e;
+    if(pt === 'month') { let [yy, mm] = document.getElementById('pMonth').value.split('-'); s = new Date(yy, mm - 1, 1); e = new Date(yy, mm, 0); }
+    else if(pt === 'salary') { let [yy, mm] = document.getElementById('pMonth').value.split('-'); s = new Date(yy, mm - 1, 16); e = new Date(yy, mm, 15); } 
+    else if(pt === 'year') { let yy = document.getElementById('pYear').value || new Date().getFullYear(); s = new Date(yy, 0, 1); e = new Date(yy, 11, 31); }
+    else if(pt === 'custom') { s = new Date(document.getElementById('pStart').value); e = new Date(document.getElementById('pEnd').value); }
+    else { s = new Date(2020, 0, 1); e = new Date(2035, 11, 31); }
+    
+    if(s && e && !isNaN(s)) {
+      s.setHours(0,0,0,0); e.setHours(23,59,59,999);
+      gStart = toISOLocal(s); gEnd = toISOLocal(e);
+      processLocalAnalytics(); 
+    }
+  }
+  
+  function setMode(m) {
+    chartLevel = 'main'; mode = m; document.getElementById('btnExp').classList.toggle('active', m === 'expense');
+    document.getElementById('btnInc').classList.toggle('active', m === 'income'); document.getElementById('btnTr').classList.toggle('active', m === 'transfer');
+    document.getElementById('hideTransitLabel').style.display = m === 'transfer' ? 'none' : 'flex'; processLocalAnalytics();
+  }
+
+  function extN(c) {
+    if(!c) return 'Без имени'; c = c.toLowerCase();
+    if(c.includes('пащен')) return 'Пащенко'; if(c.includes('руч')) return 'Ручка'; if(c.includes('гел')) return 'Геля';
+    if(c.includes('мам')) return 'Мама'; if(c.includes('пап')) return 'Папа'; if(c.includes('бабуш')) return 'Бабушка';
+    if(c.includes('ник')) return 'Ника'; if(c.includes('тин')) return 'Тина'; if(c.includes('олес')) return 'Олеся';
+    if(c.includes('лерин')) return 'Саня Лерин'; if(c.includes('лер')) return 'Лера';
+    const w = c.split(/[\s,.-]+/);
+    for(let x of w) if(x.length > 2 && !['для','на','за','от','про','это','вернул','купил','деньги','долг'].includes(x)) return x.charAt(0).toUpperCase() + x.slice(1);
+    return 'Без имени';
+  }
+
+  function processLocalAnalytics() {
+    const st = { expGroups: {}, incGroups: {}, expTotal: 0, incTotal: 0, trTotal: 0, debA: {}, debP: {}, transfers: [] };
+    const h = document.getElementById('hideTransit').checked;
+    appData.transactions.forEach(r => {
+      let isD = (r.fd >= gStart && r.fd <= gEnd);
+      if(r.type === 'Между своими' && isD) { st.trTotal += r.sumTr; st.transfers.push(r); }
+      if(r.type === 'Расход' && r.sumE > 0) {
+        let cE = r.catE.trim(), cL = cE.toLowerCase(), isDebt = (cE === 'Что-то кому-то купил в долг' || cE === 'Кому-то в долг');
+        if(isDebt) {
+          let n = extN(r.comE);
+          if(!st.debA[n]) st.debA[n] = { s: 0, r: 0, b: false, i: [] };
+          st.debA[n].s += r.sumE; st.debA[n].i.push({ r: r.r, d: r.d, cat: cE, s: r.sumE, c: r.comE, t: 'exp' });
+          if(isD) {
+            if(!st.debP[n]) st.debP[n] = { s: 0, r: 0, b: false, i: [] };
+            st.debP[n].s += r.sumE; st.debP[n].i.push({ r: r.r, d: r.d, cat: cE, s: r.sumE, c: r.comE, t: 'exp' });
+          }
+        }
+        if(isD) {
+          let gN = "Прочее", isTr = isDebt || cL.includes('бабушка');
+          for(const [g, it] of Object.entries(appData.config.exp)) if(it.some(x => x.toLowerCase() === cL)) { gN = g; break; }
+          if(!h || !isTr) {
+            if(!st.expGroups[gN]) st.expGroups[gN] = { s: 0, subs: {} };
+            if(!st.expGroups[gN].subs[cE]) st.expGroups[gN].subs[cE] = { s: 0, i: [] };
+            st.expGroups[gN].s += r.sumE; st.expGroups[gN].subs[cE].s += r.sumE;
+            st.expGroups[gN].subs[cE].i.push({ r: r.r, fd: r.fd, d: r.d, cat: cE, s: r.sumE, c: r.comE });
+            st.expTotal += r.sumE;
+          }
+        }
+      }
+      if(r.type === 'Доход' && r.sumI > 0) {
+        let cI = r.catI.trim(), cL = cI.toLowerCase(), isDebt = (cI === 'Вернули долг' || cI === 'Дали в долг');
+        if(isDebt) {
+          let n = extN(r.comI);
+          if(!st.debA[n]) st.debA[n] = { s: 0, r: 0, b: false, i: [] };
+          st.debA[n].r += r.sumI; if(cI === 'Дали в долг') st.debA[n].b = true;
+          st.debA[n].i.push({ r: r.r, d: r.d, cat: cI, s: r.sumI, c: r.comI, t: 'inc' });
+          if(isD) {
+            if(!st.debP[n]) st.debP[n] = { s: 0, r: 0, b: false, i: [] };
+            st.debP[n].r += r.sumI; if(cI === 'Дали в долг') st.debP[n].b = true;
+            st.debP[n].i.push({ r: r.r, d: r.d, cat: cI, s: r.sumI, c: r.comI, t: 'inc' });
+          }
+        }
+        if(isD) {
+          let gN = "Прочее", isTr = isDebt;
+          for(const [g, it] of Object.entries(appData.config.inc)) if(it.some(x => x.toLowerCase() === cL)) { gN = g; break; }
+          if(!h || !isTr) {
+            if(!st.incGroups[gN]) st.incGroups[gN] = { s: 0, subs: {} };
+            if(!st.incGroups[gN].subs[cI]) st.incGroups[gN].subs[cI] = { s: 0, i: [] };
+            st.incGroups[gN].s += r.sumI; st.incGroups[gN].subs[cI].s += r.sumI;
+            st.incGroups[gN].subs[cI].i.push({ r: r.r, fd: r.fd, d: r.d, cat: cI, s: r.sumI, c: r.comI });
+            st.incTotal += r.sumI;
+          }
+        }
+      }
+    });
+    appData.archiveDebts.forEach(r => {
+      if(!st.debA[r.n]) st.debA[r.n] = { s: 0, r: 0, b: false, i: [] };
+      if(r.amt > 0) { st.debA[r.n].s += r.amt; st.debA[r.n].i.push({ r: r.r, d: r.d, cat: 'Архив', s: r.amt, c: r.c, t: 'exp' }); }
+      else { st.debA[r.n].r += Math.abs(r.amt); st.debA[r.n].i.push({ r: r.r, d: r.d, cat: 'Архив возврат', s: Math.abs(r.amt), c: r.c, t: 'inc' }); }
+    });
+    currentStats = st; renderA(); renderDebts();
+  }
+
+  function tC(e, el) {
+    e.stopPropagation(); const c = el.nextElementSibling;
+    if(c.style.display === 'none') { c.style.display = 'block'; }
+    else { c.style.display = 'none'; c.querySelectorAll('.toggle-content').forEach(n => n.style.display = 'none'); }
+  }
+
+  function renderA() {
+    let tAll = 0, aG = {};
+    if(mode === 'expense') { tAll = currentStats.expTotal; aG = currentStats.expGroups; }
+    else if(mode === 'income') { tAll = currentStats.incTotal; aG = currentStats.incGroups; }
+    else { tAll = currentStats.trTotal; }
+    
+    document.getElementById('totalSum').innerText = tAll.toLocaleString() + ' ₽';
+    document.getElementById('chartArea').style.display = mode === 'transfer' ? 'none' : 'block';
+    
+    let h = '';
+    if(mode === 'transfer') {
+      currentStats.transfers.forEach(t => {
+        h += `<div class="tx-row" style="padding:16px; background:var(--bg-card); border-radius:16px; margin-bottom:12px; border:1px solid var(--border);"><div style="font-size:11px; color:var(--text-mute); margin-bottom:8px; font-weight:800;">${t.d}</div><div style="display:flex; justify-content:space-between; align-items:center;"><div style="display:flex; align-items:center; gap:8px;"><span style="background:${getBankCol(t.accF)}; color:white; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:bold;">${t.accF}</span> <span style="color:var(--text-mute);">➔</span> <span style="background:${getBankCol(t.accT)}; color:white; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:bold;">${t.accT}</span></div><b style="color:var(--text-main); font-size:18px;">${t.sumTr.toLocaleString()} ₽</b></div></div>`;
+      });
+    } else {
+      let tc = tAll || 1;
+      const sortedGroups = Object.entries(aG).sort((a,b) => b[1].s - a[1].s);
+
+      sortedGroups.forEach(([n, o], i) => {
+        const pT = ((o.s / tc) * 100).toFixed(1); let sub = '';
+        Object.entries(o.subs).sort((a,b) => b[1].s - a[1].s).forEach(([sn, so]) => {
+          let hi = '';
+          so.i.forEach(it => hi += `<div class="tx-row" style="display:flex; justify-content:space-between; padding:6px; border-bottom:1px solid var(--border); font-size:12px;" onclick="clI(event,'${it.r}','${it.cat}',${it.s},'${it.c}','${mode === 'expense' ? 'Расход' : 'Доход'}','${it.fd}')"><span><b>${it.d}</b> <i style="color:var(--text-mute); margin-left:4px;">${it.c}</i></span><b style="color:#3b82f6;">${it.s.toLocaleString()} ₽</b></div>`);
+          sub += `<div style="margin-bottom:8px;"><div class="click-header" style="background:var(--bg-card); border:1px solid var(--border);" onclick="tC(event,this)"><div><b style="color:var(--text-main); font-size:14px;">${sn}</b><div style="font-size:10px; color:var(--text-mute); margin-top:2px;">${((so.s/o.s)*100).toFixed(0)}% от группы • ${((so.s/tc)*100).toFixed(1)}% от всего</div></div><div style="display:flex; align-items:center; gap:8px;"><b style="color:var(--text-main);">${so.s.toLocaleString()} ₽</b><span style="font-size:10px; color:var(--text-mute);">▼</span></div></div><div class="toggle-content" style="display:none; padding:4px 8px;">${hi}</div></div>`;
+        });
+        h += `<div style="padding:8px 0; border-bottom:1px solid var(--border);"><div class="click-header" onclick="tC(event,this)"><div style="display:flex; gap:12px; align-items:center;"><div style="width:14px; height:14px; background:${colors[i % colors.length]}; border-radius:4px;"></div><b style="font-size:15px;">${n} <span style="font-size:11px; color:var(--text-mute); font-weight:normal; margin-left:4px;">${pT}%</span></b></div><div style="display:flex; align-items:center; gap:8px;"><b style="font-size:15px;">${o.s.toLocaleString()} ₽</b><span style="font-size:10px; color:var(--text-mute);">▼</span></div></div><div class="toggle-content" style="display:none; background:var(--input-bg); padding:12px; border-radius:12px; margin-top:4px; border:1px solid var(--border);">${sub}</div></div>`;
+      });
+
+      let cL = [], cD = [], cC = [];
+      if(chartLevel === 'main') {
+        document.getElementById('chartCenterBtn').style.display = 'none';
+        cL = sortedGroups.map(g => g[0]); cD = sortedGroups.map(g => g[1].s); cC = sortedGroups.map((_, i) => colors[i % colors.length]);
+      } else {
+        if(aG[activeChartGroup]) {
+          document.getElementById('chartCenterBtn').style.display = 'flex';
+          document.getElementById('chartCenterTitle').innerText = activeChartGroup;
+          const sSubs = Object.entries(aG[activeChartGroup].subs).sort((a,b) => b[1].s - a[1].s);
+          cL = sSubs.map(s => s[0]); cD = sSubs.map(s => s[1].s); cC = sSubs.map((_, i) => colors[i % colors.length]);
+        } else {
+          chartLevel = 'main'; renderA(); return;
+        }
+      }
+      if(myChart) myChart.destroy();
+      myChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: cL, datasets: [{ data: cD, backgroundColor: cC }] },
+        options: { plugins: { legend: { display: false }, tooltip: { enabled: true } }, cutout: '70%', maintainAspectRatio: false, elements: { arc: { borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#1e293b' : '#ffffff' } }, onClick: (e, els) => { if(els.length > 0 && chartLevel === 'main') { activeChartGroup = cL[els[0].index]; chartLevel = 'sub'; renderA(); } else if (chartLevel === 'sub') { chartLevel = 'main'; renderA(); } } }
+      });
+    }
+    document.getElementById('categoriesList').innerHTML = h || '<div style="text-align:center; color:var(--text-mute); font-weight:bold; margin-top:20px;">Нет данных</div>';
+  }
+
+  function updateEditDatalist(type) {
+    let h = ''; const dict = type === 'Расход' ? appData.config.exp : appData.config.inc;
+    if(dict) { for(const [g, i] of Object.entries(dict)) i.forEach(x => h += `<option value="${x}">`); }
+    document.getElementById('editCatDataList').innerHTML = h;
+  }
+
+  function clI(e, r, cat, s, c, type, dStr) {
+    e.stopPropagation();
+    if(String(r).includes('local_')) return alert('Эта операция еще в очереди (не отправлена).');
+    if(String(r).includes('arch_')) return alert('Это архивная запись долга, её нельзя изменить.');
+    
+    document.getElementById('editRow').value = r; document.getElementById('editType').value = type;
+    
+    let dateVal = dStr;
+    if(dStr && dStr.includes('.')) { let p = dStr.split('.'); let yy = p[2] ? (p[2].length === 2 ? '20'+p[2] : p[2]) : new Date().getFullYear(); dateVal = `${yy}-${p[1]}-${p[0]}`;
+    } else if (!dStr) { dateVal = toISOLocal(new Date()); }
+    document.getElementById('editDate').value = dateVal;
+    
+    document.getElementById('editCat').value = cat; document.getElementById('editSum').value = s; document.getElementById('editComment').value = c;
+    updateEditDatalist(type); document.getElementById('editModal').style.display = 'flex';
+  }
+
+  async function saveEdit() {
+    document.getElementById('saveEditBtn').innerText = '...';
+    const r = document.getElementById('editRow').value;
+    const d = document.getElementById('editDate').value;
+    const cat = document.getElementById('editCat').value;
+    const s = document.getElementById('editSum').value;
+    const c = document.getElementById('editComment').value;
+    const type = document.getElementById('editType').value;
+    const m = type === 'Расход' ? 'expense' : 'income';
+    await fetch(API + '/api/transactions/edit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({row: parseInt(r), date: d, cat, sum: parseFloat(s), comment: c, mode: m})
+    });
+    document.getElementById('editModal').style.display = 'none';
+    document.getElementById('saveEditBtn').innerText = 'Применить';
+    fetchAllData();
+  }
+
+  function renderDebts() {
+    if(!currentStats) return; const isP = document.getElementById('debtPeriodToggle').checked, dS = isP ? currentStats.debP : currentStats.debA; let h = '';
+    Object.entries(dS).forEach(([n, v]) => {
+      let net = v.s - v.r, st = net > 0 ? `<b style="color:#ef4444">Мне должны ${net.toLocaleString()} ₽</b>` : (net < 0 ? (v.b ? `<b style="color:#10b981">Я должен ${Math.abs(net).toLocaleString()} ₽</b>` : `<b style="color:#10b981">В плюсе: ${Math.abs(net).toLocaleString()} ₽</b>`) : `<b style="color:var(--text-mute)">В расчете</b>`);
+      let itH = ''; v.i.forEach(it => { itH += `<div class="tx-row" style="padding:10px; margin-bottom:8px; border-left:3px solid ${it.t === 'exp' ? '#ef4444' : '#10b981'}; background:var(--input-bg);" onclick="clI(event,'${it.r}','${it.cat}',${it.s},'${it.c}','${it.t === 'exp' ? 'Расход' : 'Доход'}','')"><div style="display:flex; justify-content:space-between;"><span style="font-size:11px; color:var(--text-mute);">${it.d} | ${it.cat}</span><b>${it.t === 'exp' ? '-' : '+'}${it.s.toLocaleString()} ₽</b></div></div>`; });
+      h += `<div style="padding:8px 0; border-bottom:1px solid var(--border);"><div class="click-header" onclick="tC(event,this)"><div><b style="font-size:16px;">${n}</b></div><div style="display:flex; align-items:center; gap:8px;">${st}<span style="font-size:10px; color:var(--text-mute);">▼</span></div></div><div class="toggle-content" style="display:none; margin-top:8px; background:var(--bg-card); border-radius:12px; padding:12px; border:1px solid var(--border);"><button onclick="renameP(event,'${n}')" style="width:100%; padding:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border); border-radius:8px; font-weight:bold; margin-bottom:12px; cursor:pointer;">✏️ Переименовать</button>${itH}</div></div>`;
+    });
+    document.getElementById('debtsByName').innerHTML = h || 'Нет долгов';
+  }
+  
+  function renameP(e, o) { e.stopPropagation(); let n = prompt(`Новое имя для ${o}:`); if(n && n !== o) { document.getElementById('loader').style.display = 'block'; fetchAllData(); } }
+
+  function switchTabDebt(t) { document.querySelectorAll('#debtCenterModal .tab-btn').forEach(e => e.classList.remove('active')); document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active'); document.getElementById('contentNew').style.display = t === 'new' ? 'block' : 'none'; document.getElementById('contentSearch').style.display = t === 'search' ? 'flex' : 'none'; document.getElementById('contentOld').style.display = t === 'old' ? 'block' : 'none'; if(t === 'search') executeDebtSearch(); }
+  function updateSearchDateUI() { const t = document.getElementById('searchDateType').value; document.getElementById('searchSingleWrap').style.display = t === 'single' ? 'block' : 'none'; document.getElementById('searchRangeWrap').style.display = t === 'range' ? 'flex' : 'none'; executeDebtSearch(); }
+  
+  function executeDebtSearch() { 
+    const q = document.getElementById('searchInput').value.toLowerCase(), dType = document.getElementById('searchDateType').value, dSing = document.getElementById('searchSingle').value, dStart = document.getElementById('searchStart').value, dEnd = document.getElementById('searchEnd').value;
+    let h = '', count = 0;
+    for(let i = appData.transactions.length - 1; i >= 0; i--) {
+      let r = appData.transactions[i]; let str = (r.d + ' ' + r.sumE + ' ' + r.catE + ' ' + r.comE + ' ' + r.sumI + ' ' + r.catI + ' ' + r.comI).toLowerCase();
+      if(q && !str.includes(q)) continue; if(dType === 'single' && dSing && r.fd !== dSing) continue; if(dType === 'range' && dStart && dEnd && (r.fd < dStart || r.fd > dEnd)) continue;
+      if(r.type === 'Расход' && r.sumE > 0) { h += `<div class="search-row"><div class="click-header" onclick="tC(event,this)"><div style="font-size:12px;"><b>${r.d}</b> | ${r.catE}<br><i style="color:var(--text-mute)">${r.comE}</i></div><div style="font-weight:900;color:#ef4444">${r.sumE.toLocaleString()} ₽</div></div><div class="toggle-content" style="display:none; padding:12px; background:var(--input-bg); border-radius:12px; margin-top:8px;"><input type="text" id="ln_${r.r}" class="input-ui" placeholder="Имя..."><select id="la_${r.r}" class="input-ui"><option value="Кому-то в долг">Я дал</option><option value="Что-то кому-то купил в долг">Я купил в долг</option></select><button onclick="linkR(${r.r},'exp')" style="background:#1e293b; color:white; width:100%; padding:10px; border-radius:8px; cursor:pointer;">Привязать</button></div></div>`; count++; } 
+      if(r.type === 'Доход' && r.sumI > 0) { h += `<div class="search-row"><div class="click-header" onclick="tC(event,this)"><div style="font-size:12px;"><b>${r.d}</b> | ${r.catI}<br><i style="color:var(--text-mute)">${r.comI}</i></div><div style="font-weight:900;color:#10b981">${r.sumI.toLocaleString()} ₽</div></div><div class="toggle-content" style="display:none; padding:12px; background:var(--input-bg); border-radius:12px; margin-top:8px;"><input type="text" id="ln_${r.r}" class="input-ui" placeholder="Имя..."><select id="la_${r.r}" class="input-ui"><option value="Вернули долг">Мне вернули</option><option value="Дали в долг">Мне дали</option></select><button onclick="linkR(${r.r},'inc')" style="background:#1e293b; color:white; width:100%; padding:10px; border-radius:8px; cursor:pointer;">Привязать</button></div></div>`; count++; }
+      if(count >= 1500) break;
+    }
+    document.getElementById('tableRowsList').innerHTML = h || '<div style="text-align:center; color:var(--text-mute);">Ничего не найдено</div>'; document.getElementById('searchCount').innerText = `Найдено: ${count} шт`;
+  }
+  
+  async function linkR(r, t) {
+    const n = document.getElementById(`ln_${r}`).value;
+    const a = document.getElementById(`la_${r}`).value;
+    if(!n) return;
+    document.getElementById('debtCenterModal').style.display = 'none';
+    document.getElementById('loader').style.display = 'block';
+    fetchAllData();
+  }
+  async function saveNewDebt() {
+    const a = document.getElementById('newAction').value;
+    const d = document.getElementById('newDate').value;
+    const n = document.getElementById('newName').value;
+    const s = document.getElementById('newSum').value;
+    const acc = document.getElementById('newAcc').value;
+    document.getElementById('btnSaveNew').innerText = "...";
+    await fetch(API + '/api/transactions/batch', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify([{fd: d, type: a.includes('Расход') ? 'Расход' : 'Доход',
+        catE: a.includes('Расход') ? a : '', sumE: a.includes('Расход') ? parseFloat(s) : 0, accE: a.includes('Расход') ? acc : '', comE: n,
+        catI: a.includes('Доход') ? a : '', sumI: a.includes('Доход') ? parseFloat(s) : 0, accI: a.includes('Доход') ? acc : '', comI: n,
+        accF: '', accT: '', sumTr: 0}])
+    });
+    document.getElementById('debtCenterModal').style.display = 'none';
+    document.getElementById('btnSaveNew').innerText = "Сохранить";
+    fetchAllData();
+  }
+  
+  function parseBulkData() { const l = document.getElementById('bulkText').value.split('\n'); let h = ''; bulkParsed = []; l.forEach((x, i) => { x = x.trim(); if(!x || x === '.') return; const w = x.split(' '); let n = w[0]; if(w.length > 1 && (w[0] === 'Саня' || w[0] === 'Ебучая')) n = w[0] + ' ' + w[1]; let amt = 0; const m = x.match(/-?\d+/g); if(m) { const v = m.filter(y => Math.abs(y) < 2000 || y % 100 === 0 || y === '2200' || y === '3000' || y === '13500' || y === '16300' || y === '25000'); amt = v.length ? v[v.length - 1] : m[m.length - 1]; } let c = x.replace(n, '').replace(amt, '').trim(); bulkParsed.push({ name: n, amount: amt, comment: c }); h += `<div style="display:flex; gap:4px; margin-bottom:4px;"><input class="input-ui" style="padding:4px; margin:0; width:35%;" value="${n}" id="bN_${i}"><input class="input-ui" style="padding:4px; margin:0; width:25%; font-weight:bold;" value="${amt}" id="bA_${i}"><input class="input-ui" style="padding:4px; margin:0; flex:1;" value="${c}" id="bC_${i}"></div>`; }); if(bulkParsed.length) h += `<button onclick="saveBulk()" style="width:100%; background:#10b981; color:white; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:8px;">💾 Записать в Архив</button>`; document.getElementById('bulkResults').innerHTML = h; }
+  function async function saveBulk() {
+    const d = [];
+    bulkParsed.forEach((_, i) => {
+      d.push({name: document.getElementById(`bN_${i}`).value, amount: document.getElementById(`bA_${i}`).value, comment: document.getElementById(`bC_${i}`).value});
+    });
+    document.getElementById('debtCenterModal').style.display = 'none';
+    document.getElementById('loader').style.display = 'block';
+    alert('Архив записан!');
+    document.getElementById('bulkText').value = '';
+    fetchAllData();
+  }
+</script>
+</body>
+</html>
