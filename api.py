@@ -9,23 +9,30 @@ import os
 
 SUPABASE_URL = os.environ.get("https://eiwyyxsaqqcfghthknlj.supabase.co")
 SUPABASE_KEY = os.environ.get("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpd3l5eHNhcXFjZmdodGhrbmxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDY2NTEsImV4cCI6MjA5MDM4MjY1MX0.kl_OlLmJQC6eGpWKivtKhiXpYiahEsY20m4SWSteyEY")
+GAS_URL = "https://script.google.com/macros/s/AKfycbwwQ0_a0ASNi-xWgEl5Ibuu_6kdUVeckCSE50XRfvMsekEDihwe9ecMlw5DnICQlFPx/exec"
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"],
-    allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# ---- Вспомогательные функции для Supabase ----
 def sb_get(table, params=""):
     url = f"{SUPABASE_URL}/rest/v1/{table}?{params}"
-    r = urllib.request.Request(url, headers={
+    req = urllib.request.Request(url, headers={
         'apikey': SUPABASE_KEY,
         'Authorization': f'Bearer {SUPABASE_KEY}',
     })
-    with urllib.request.urlopen(r) as res:
+    with urllib.request.urlopen(req) as res:
         return json.loads(res.read())
 
 def sb_post(table, data):
     body = json.dumps(data).encode()
-    r = urllib.request.Request(
+    req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/{table}",
         data=body, method='POST',
         headers={
@@ -34,21 +41,22 @@ def sb_post(table, data):
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal'
         })
-    with urllib.request.urlopen(r) as res:
+    with urllib.request.urlopen(req) as res:
         return res.status
 
-def sb_patch(table, match_col, match_val, data):
+def sb_patch(table, filter_col, filter_val, data):
+    url = f"{SUPABASE_URL}/rest/v1/{table}?{filter_col}=eq.{filter_val}"
     body = json.dumps(data).encode()
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{match_col}=eq.{match_val}"
-    r = urllib.request.Request(url, data=body, method='PATCH', headers={
+    req = urllib.request.Request(url, data=body, method='PATCH', headers={
         'apikey': SUPABASE_KEY,
         'Authorization': f'Bearer {SUPABASE_KEY}',
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
     })
-    with urllib.request.urlopen(r) as res:
+    with urllib.request.urlopen(req) as res:
         return res.status
 
+# ---- Основные эндпоинты ----
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
@@ -161,29 +169,30 @@ def edit_transaction(data: EditData):
     sb_patch('transactions', 'id', data.row, update)
     return True
 
-GAS_URL = "https://script.google.com/macros/s/AKfycbwwQ0_a0ASNi-xWgEl5Ibuu_6kdUVeckCSE50XRfvMsekEDihwe9ecMlw5DnICQlFPx/exec"
+@app.get("/api/export-status")
+def export_status():
+    data = sb_get('transactions', 'is_exported=eq.false&select=id')
+    return {"unsynced": len(data)}
 
-@app.post("/export-to-sheets")
-async def export_to_sheets():
-    # 1. Получаем неэкспортированные записи
-    response = supabase.table("transactions").select("*").eq("is_exported", False).execute()
-    transactions = response.data
-    
+@app.post("/api/export-to-sheets")
+def export_to_sheets():
+    transactions = sb_get('transactions', 'is_exported=eq.false')
     if not transactions:
-        return {"message": "Нет новых данных для экспорта", "exported_count": 0}
+        return {"exported_count": 0, "message": "Нет новых данных"}
 
-    # 2. Отправляем в Google Таблицу
-    async with httpx.AsyncClient() as client:
-        try:
-            gas_resp = await client.post(GAS_URL, json=transactions)
-            gas_resp.raise_for_status() # Проверка на ошибки сети
-        except Exception as e:
-            return {"status": "error", "message": f"Ошибка соединения с таблицей: {str(e)}"}
-    
-    # 3. Отмечаем как экспортированные в Supabase
-    if gas_resp.status_code == 200:
-        ids = [t["id"] for t in transactions]
-        supabase.table("transactions").update({"is_exported": True}).in_("id", ids).execute()
-        return {"status": "success", "exported_count": len(transactions)}
-    
-    return {"status": "error", "message": "Google Apps Script вернул ошибку"}
+    try:
+        req = urllib.request.Request(
+            GAS_URL,
+            data=json.dumps(transactions).encode(),
+            method='POST',
+            headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            if resp.status != 200:
+                return {"status": "error", "message": f"GAS вернул {resp.status}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+    for tx in transactions:
+        sb_patch('transactions', 'id', tx['id'], {"is_exported": True})
+    return {"status": "success", "exported_count": len(transactions)}
