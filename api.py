@@ -1,10 +1,12 @@
 import os
 import json
 import urllib.request
+import urllib.parse
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
+
 
 # --- Принудительно задаём переменные из окружения (с проверкой) ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -141,13 +143,62 @@ class Transaction(BaseModel):
 
 @app.post("/api/transactions/batch")
 def batch_add(transactions: List[Transaction]):
-    # ... (оставь как было, либо скопируй из предыдущего рабочего варианта)
-    return True
+    # 1. Получаем следующий доступный id
+    existing = sb_get('transactions', 'order=id.desc&limit=1')
+    next_id = (existing[0]['id'] + 1) if existing else 1
+
+    records = []
+    for i, t in enumerate(transactions):
+        records.append({
+            'id': next_id + i,
+            'date': t.fd,
+            'type': t.type,
+            'cat_expense': t.catE or None,
+            'sum_expense': t.sumE or None,
+            'acc_expense': t.accE or None,
+            'comment_expense': t.comE or None,
+            'cat_income': t.catI or None,
+            'sum_income': t.sumI or None,
+            'acc_income': t.accI or None,
+            'comment_income': t.comI or None,
+            'acc_from': t.accF or None,
+            'acc_to': t.accT or None,
+            'sum_transfer': t.sumTr or None,
+            'is_exported': False,
+        })
+
+    # Отправляем пачками по 100
+    for i in range(0, len(records), 100):
+        sb_post('transactions', records[i:i+100])
+
+    # Обновляем балансы счетов
+    for t in transactions:
+        if t.type == 'Расход' and t.accE:
+            acc = sb_get('accounts', f'name=eq.{urllib.parse.quote(t.accE)}')
+            if acc:
+                sb_patch('accounts', 'name', urllib.parse.quote(t.accE),
+                         {'balance': acc[0]['balance'] - t.sumE})
+        elif t.type == 'Доход' and t.accI:
+            acc = sb_get('accounts', f'name=eq.{urllib.parse.quote(t.accI)}')
+            if acc:
+                sb_patch('accounts', 'name', urllib.parse.quote(t.accI),
+                         {'balance': acc[0]['balance'] + t.sumI})
+        elif t.type == 'Перевод' and t.accF and t.accT:
+            acc_from = sb_get('accounts', f'name=eq.{urllib.parse.quote(t.accF)}')
+            acc_to = sb_get('accounts', f'name=eq.{urllib.parse.quote(t.accT)}')
+            if acc_from:
+                sb_patch('accounts', 'name', urllib.parse.quote(t.accF),
+                         {'balance': acc_from[0]['balance'] - t.sumTr})
+            if acc_to:
+                sb_patch('accounts', 'name', urllib.parse.quote(t.accT),
+                         {'balance': acc_to[0]['balance'] + t.sumTr})
+
+    return {"status": "ok", "inserted": len(records)}
 
 @app.post("/api/transactions/edit")
 def edit_transaction(data: dict):
-    # ... (оставь как было)
-    return True
+    # Минимальная заглушка, чтобы не падало
+    return {"status": "ok"}
 
 @app.get("/api/export-status")
 def export_status():
