@@ -160,3 +160,30 @@ def edit_transaction(data: EditData):
                        'comment_income': data.comment})
     sb_patch('transactions', 'id', data.row, update)
     return True
+
+GAS_URL = "https://script.google.com/macros/s/AKfycbwwQ0_a0ASNi-xWgEl5Ibuu_6kdUVeckCSE50XRfvMsekEDihwe9ecMlw5DnICQlFPx/exec"
+
+@app.post("/export-to-sheets")
+async def export_to_sheets():
+    # 1. Получаем неэкспортированные записи
+    response = supabase.table("transactions").select("*").eq("is_exported", False).execute()
+    transactions = response.data
+    
+    if not transactions:
+        return {"message": "Нет новых данных для экспорта", "exported_count": 0}
+
+    # 2. Отправляем в Google Таблицу
+    async with httpx.AsyncClient() as client:
+        try:
+            gas_resp = await client.post(GAS_URL, json=transactions)
+            gas_resp.raise_for_status() # Проверка на ошибки сети
+        except Exception as e:
+            return {"status": "error", "message": f"Ошибка соединения с таблицей: {str(e)}"}
+    
+    # 3. Отмечаем как экспортированные в Supabase
+    if gas_resp.status_code == 200:
+        ids = [t["id"] for t in transactions]
+        supabase.table("transactions").update({"is_exported": True}).in_("id", ids).execute()
+        return {"status": "success", "exported_count": len(transactions)}
+    
+    return {"status": "error", "message": "Google Apps Script вернул ошибку"}
