@@ -8,7 +8,7 @@ import json
 import os
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_KEY = os.environ.get("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpd3l5eHNhcXFjZmdodGhrbmxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDY2NTEsImV4cCI6MjA5MDM4MjY1MX0.kl_OlLmJQC6eGpWKivtKhiXpYiahEsY20m4SWSteyEY")
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"],
