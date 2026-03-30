@@ -43,21 +43,33 @@ def sb_get(table, params=""):
     with urllib.request.urlopen(req) as res:
         return json.loads(res.read())
 
+def sb_post(table, data):
+    body = json.dumps(data).encode()
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/{table}",
+        data=body, method='POST',
+        headers={
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+        })
+    with urllib.request.urlopen(req) as res:
+        return res.status
+
 def sb_patch(table, filter_col, filter_val, data):
     url = f"{SUPABASE_URL}/rest/v1/{table}?{filter_col}=eq.{filter_val}"
     body = json.dumps(data).encode()
     req = urllib.request.Request(
-        url,
-        data=body,
-        method="PATCH",
+        url, data=body, method='PATCH',
         headers={
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json",
-        },
-    )
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        })
     with urllib.request.urlopen(req) as res:
         return res.status
+        
 
 @app.get("/api/health")
 def health():
@@ -143,35 +155,24 @@ class Transaction(BaseModel):
 
 @app.post("/api/transactions/batch")
 def batch_add(transactions: List[Transaction]):
-    # 1. Получаем следующий доступный id
     existing = sb_get('transactions', 'order=id.desc&limit=1')
     next_id = (existing[0]['id'] + 1) if existing else 1
 
     records = []
     for i, t in enumerate(transactions):
         records.append({
-            'id': next_id + i,
-            'date': t.fd,
-            'type': t.type,
-            'cat_expense': t.catE or None,
-            'sum_expense': t.sumE or None,
-            'acc_expense': t.accE or None,
-            'comment_expense': t.comE or None,
-            'cat_income': t.catI or None,
-            'sum_income': t.sumI or None,
-            'acc_income': t.accI or None,
-            'comment_income': t.comI or None,
-            'acc_from': t.accF or None,
-            'acc_to': t.accT or None,
+            'id': next_id + i, 'date': t.fd, 'type': t.type,
+            'cat_expense': t.catE or None, 'sum_expense': t.sumE or None,
+            'acc_expense': t.accE or None, 'comment_expense': t.comE or None,
+            'cat_income': t.catI or None, 'sum_income': t.sumI or None,
+            'acc_income': t.accI or None, 'comment_income': t.comI or None,
+            'acc_from': t.accF or None, 'acc_to': t.accT or None,
             'sum_transfer': t.sumTr or None,
-            'is_exported': False,
         })
 
-    # Отправляем пачками по 100
     for i in range(0, len(records), 100):
         sb_post('transactions', records[i:i+100])
 
-    # Обновляем балансы счетов
     for t in transactions:
         if t.type == 'Расход' and t.accE:
             acc = sb_get('accounts', f'name=eq.{urllib.parse.quote(t.accE)}')
@@ -183,22 +184,25 @@ def batch_add(transactions: List[Transaction]):
             if acc:
                 sb_patch('accounts', 'name', urllib.parse.quote(t.accI),
                          {'balance': acc[0]['balance'] + t.sumI})
-        elif t.type == 'Перевод' and t.accF and t.accT:
-            acc_from = sb_get('accounts', f'name=eq.{urllib.parse.quote(t.accF)}')
-            acc_to = sb_get('accounts', f'name=eq.{urllib.parse.quote(t.accT)}')
-            if acc_from:
-                sb_patch('accounts', 'name', urllib.parse.quote(t.accF),
-                         {'balance': acc_from[0]['balance'] - t.sumTr})
-            if acc_to:
-                sb_patch('accounts', 'name', urllib.parse.quote(t.accT),
-                         {'balance': acc_to[0]['balance'] + t.sumTr})
+    return True
 
-    return {"status": "ok", "inserted": len(records)}
+class EditData(BaseModel):
+    row: int; date: str; cat: str
+    sum: float; comment: str; mode: str
 
 @app.post("/api/transactions/edit")
-def edit_transaction(data: dict):
-    # Минимальная заглушка, чтобы не падало
-    return {"status": "ok"}
+def edit_transaction(data: EditData):
+    update = {'date': data.date}
+    if data.mode == 'expense':
+        update.update({'cat_expense': data.cat,
+                       'sum_expense': data.sum,
+                       'comment_expense': data.comment})
+    else:
+        update.update({'cat_income': data.cat,
+                       'sum_income': data.sum,
+                       'comment_income': data.comment})
+    sb_patch('transactions', 'id', data.row, update)
+    return True
 
 @app.get("/api/export-status")
 def export_status():
