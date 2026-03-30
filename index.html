@@ -55,6 +55,11 @@
   </style>
 </head>
 <body>
+<div style="margin: 20px 0;">
+    <button id="syncBtn" onclick="syncData()" style="background: #10b981; color: white; padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+      Синхронизировать с Таблицей (неотправлено: <span id="unsyncedCount">0</span>)
+    </button>
+</div>
 
 <div style="max-width: 800px; margin: 0 auto;">
   
@@ -490,7 +495,9 @@
     });
     localQueue = [];
     document.getElementById('syncBar').style.display = 'none';
-    renderQueue(); alert('Выгружено!'); fetchAllData();
+    renderQueue(); alert('Выгружено!'); 
+    updateSyncStatus();
+    fetchAllData();
   }
 
   function rebuildFormDicts() {
@@ -936,6 +943,7 @@
     });
     document.getElementById('editModal').style.display = 'none';
     document.getElementById('saveEditBtn').innerText = 'Применить';
+    updateSyncStatus();
     fetchAllData();
   }
 
@@ -992,6 +1000,7 @@
     });
     document.getElementById('debtCenterModal').style.display = 'none';
     document.getElementById('btnSaveNew').innerText = "Сохранить";
+    updateSyncStatus();
     fetchAllData();
   }
   function parseBulkData() {
@@ -1009,6 +1018,70 @@
     document.getElementById('bulkText').value = '';
     fetchAllData();
   }
+  async function updateSyncStatus() {
+    try {
+        // Запрашиваем количество неэкспортированных записей напрямую из Supabase
+        const { count, error } = await supabase
+            .from('transactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_exported', false);
+            
+        if (!error) {
+            document.getElementById('unsyncedCount').innerText = count || 0;
+            
+            // Если отправлять нечего, делаем кнопку серой
+            const syncBtn = document.getElementById('syncBtn');
+            if (count === 0) {
+                syncBtn.style.background = '#9ca3af';
+                syncBtn.style.cursor = 'not-allowed';
+            } else {
+                syncBtn.style.background = '#10b981';
+                syncBtn.style.cursor = 'pointer';
+            }
+        }
+    } catch (err) {
+        console.error("Ошибка при проверке статуса синхронизации:", err);
+    }
+}
+
+async function syncData() {
+    const btn = document.getElementById('syncBtn');
+    const unsyncedCount = parseInt(document.getElementById('unsyncedCount').innerText);
+    
+    if (unsyncedCount === 0) {
+        alert("Все данные уже синхронизированы!");
+        return;
+    }
+
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "Синхронизация...";
+
+    try {
+        const response = await fetch('/export-to-sheets', { method: 'POST' });
+        const result = await response.json();
+        
+        if (result.status === "success" || result.exported_count > 0) {
+            alert(`Успешно! Перенесено записей: ${result.exported_count}`);
+        } else if (result.status === "error") {
+            alert(`Ошибка: ${result.message}`);
+        }
+        
+        await updateSyncStatus();
+    } catch (e) {
+        alert("Произошла ошибка при обращении к серверу.");
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+  updateSyncStatus();
+}
+
+// Запускаем подсчет при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    updateSyncStatus();
+});
 </script>
 </body>
 </html>
