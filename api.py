@@ -10,7 +10,7 @@ from pydantic import BaseModel
 # === Конфигурация ===
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-GAS_URL = "https://script.google.com/macros/s/AKfycbwwQ0_a0ASNi-xWgEl5Ibuu_6kdUVeckCSE50XRfvMsekEDihwe9ecMlw5DnICQlFPx/exec"
+GAS_URL = "https://script.google.com/macros/s/AKfycbwFeOatTKidBbcPSz_5nAM01hqQsN8XbNbzF1TOb1eh9kMn8i_BjB-hWFH34uoJtZk/exec"
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise RuntimeError("Missing SUPABASE_URL or SUPABASE_KEY environment variables")
