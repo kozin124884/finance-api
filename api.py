@@ -231,28 +231,32 @@ def export_status():
 
 @app.post("/api/export-to-sheets")
 def export_to_sheets():
-    transactions = sb_get("transactions", "is_exported=eq.false")
+    transactions = sb_get('transactions', 'is_exported=eq.false')
     if not transactions:
-        return {"exported_count": 0, "message": "Нет новых данных"}
-
-    BATCH_SIZE = 50
-    exported = 0
-    for i in range(0, len(transactions), BATCH_SIZE):
-        batch = transactions[i:i+BATCH_SIZE]
-        try:
-            req = urllib.request.Request(
-                GAS_URL,
-                data=json.dumps(batch).encode(),
-                method="POST",
-                headers={"Content-Type": "application/json"},
-            )
-            with urllib.request.urlopen(req, timeout=90) as resp:
-                if resp.status != 200:
-                    return {"status": "error", "message": f"GAS error at batch {i//BATCH_SIZE + 1}"}
-            # Помечаем отправленные
-            for tx in batch:
-                sb_patch("transactions", "id", tx["id"], {"is_exported": True})
-            exported += len(batch)
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-    return {"status": "success", "exported_count": exported}
+        return {"exported_count": 0}
+    
+    # Берём текущие счета
+    accounts = sb_get('accounts')
+    
+    payload = {
+        "transactions": transactions,
+        "accounts": accounts
+    }
+    
+    try:
+        req = urllib.request.Request(
+            GAS_URL,
+            data=json.dumps(payload).encode(),
+            method='POST',
+            headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            if resp.status != 200:
+                return {"status": "error", "message": f"GAS вернул {resp.status}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    
+    for tx in transactions:
+        sb_patch('transactions', 'id', tx['id'], {"is_exported": True})
+    
+    return {"status": "success", "exported_count": len(transactions)}
